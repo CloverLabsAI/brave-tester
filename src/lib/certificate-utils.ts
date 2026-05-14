@@ -195,7 +195,7 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
     ctx.font = `400 10px ${SANS}`;
     ctx.fillText("Uniqueness", hashX, uY);
     const d = crossProfile.macPerContext;
-    const items = [["Au", d.uniqueAudio], ["Cv", d.uniqueCanvas], ["Tz", d.uniqueTimezones], ["Sc", d.uniqueScreens]] as const;
+    const items = [["Audio", d.uniqueAudio], ["Canvas", d.uniqueCanvas], ["TZ", d.uniqueTimezones], ["Screen", d.uniqueScreens]] as const;
     let ix = hashX;
     for (const [name, val] of items) {
       ctx.fillStyle = val === d.total ? "#059669" : "#d97706";
@@ -204,7 +204,7 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
       ctx.fillStyle = "#555";
       ctx.font = `400 9px ${SANS}`;
       ctx.fillText(name, ix, uY + 26);
-      ix += 38;
+      ix += 46;
     }
   }
 
