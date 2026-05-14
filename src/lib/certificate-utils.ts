@@ -209,7 +209,7 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
     ctx.font = `400 10px ${SANS}`;
     ctx.fillText("Uniqueness", uX, hashY);
     const d = crossProfile.macPerContext;
-    const items = [["Audio", d.uniqueAudio], ["Canvas", d.uniqueCanvas], ["TZ", d.uniqueTimezones], ["Screen", d.uniqueScreens]] as const;
+    const items = [["Audio", d.uniqueAudio], ["Canvas", d.uniqueCanvas], ["TZ", d.uniqueTimezones]] as const;
     let ix = uX;
     for (const [name, val] of items) {
       ctx.fillStyle = val === d.total ? "#059669" : "#d97706";
