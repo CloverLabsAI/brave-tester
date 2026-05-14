@@ -5,20 +5,17 @@ export function generateVisualHashPattern(hash: string): { colors: string[]; gri
   for (let i = 0; i < Math.min(hash.length, 32); i += 2) {
     bytes.push(parseInt(hash.substring(i, i + 2), 16) || 0);
   }
-
   const colors = [
     `hsl(${14 + (bytes[0] || 0) % 12}, ${70 + (bytes[1] || 0) % 20}%, ${50 + (bytes[2] || 0) % 15}%)`,
     `hsl(${8 + (bytes[3] || 0) % 16}, ${65 + (bytes[4] || 0) % 25}%, ${45 + (bytes[5] || 0) % 18}%)`,
     `hsl(${20 + (bytes[6] || 0) % 10}, ${60 + (bytes[7] || 0) % 20}%, ${40 + (bytes[8] || 0) % 20}%)`,
   ];
-
   const grid: boolean[][] = [];
   for (let row = 0; row < 5; row++) {
     const line: boolean[] = [];
     for (let col = 0; col < 5; col++) {
       const mirrorCol = col < 3 ? col : 4 - col;
-      const idx = row * 3 + mirrorCol;
-      line.push((bytes[idx % bytes.length] || 0) > 128);
+      line.push((bytes[(row * 3 + mirrorCol) % bytes.length] || 0) > 128);
     }
     grid.push(line);
   }
@@ -39,206 +36,213 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
+// Load Geist fonts from Next.js font CSS — they're already loaded by the page
+async function ensureFonts(): Promise<void> {
+  try {
+    await document.fonts.ready;
+  } catch {}
+}
+
+// Font helpers — use CSS variable font family names that Next.js sets up
+const SANS = "'__Geist_e531da', 'Geist', system-ui, sans-serif";
+const MONO = "'__Geist_Mono_c3bc58', 'Geist Mono', ui-monospace, monospace";
+
 export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCertificateOptions) {
+  await ensureFonts();
+
   const { certificate, crossProfile } = opts;
-  const W = 960, H = 820;
-  canvas.width = W * 2;
-  canvas.height = H * 2;
+  const W = 920, H = 580;
+  const dpr = 2;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
   canvas.style.width = `${W}px`;
   canvas.style.height = `${H}px`;
   const ctx = canvas.getContext("2d")!;
-  ctx.scale(2, 2);
+  ctx.scale(dpr, dpr);
 
-  // Background
+  const P = 40; // padding
+  const passed = certificate.overallPass;
+
+  // BG
   ctx.fillStyle = "#0a0a0a";
   ctx.fillRect(0, 0, W, H);
-
-  // Border
-  ctx.strokeStyle = "#262626";
+  ctx.strokeStyle = "#1e1e1e";
   ctx.lineWidth = 1;
-  ctx.strokeRect(24, 24, W - 48, H - 48);
+  ctx.strokeRect(P - 0.5, P - 0.5, W - P * 2 + 1, H - P * 2 + 1);
 
-  // Logo + Title
-  const passed = certificate.overallPass;
+  // ── Row 1: Logo + title + badge ──
   try {
     const logo = await loadImage("/brave-logo.svg");
-    ctx.drawImage(logo, W / 2 - 16, 44, 32, 37);
-  } catch {
-    ctx.fillStyle = "#FB542B";
-    ctx.font = "600 24px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("◆", W / 2, 68);
-  }
+    ctx.drawImage(logo, P + 1, P + 12, 22, 25);
+  } catch {}
 
-  ctx.font = "500 12px sans-serif";
-  ctx.fillStyle = "#666666";
+  ctx.font = `500 14px ${SANS}`;
+  ctx.fillStyle = "#ededed";
+  ctx.textAlign = "left";
+  ctx.fillText("Brave Build Certificate", P + 30, P + 30);
+
+  // Badge — right aligned
+  const badgeW = 72, badgeH = 24;
+  const badgeX = W - P - badgeW;
+  roundRect(ctx, badgeX, P + 12, badgeW, badgeH, 4);
+  ctx.fillStyle = passed ? "#059669" : "#dc2626";
+  ctx.fill();
+  ctx.fillStyle = "#fff";
+  ctx.font = `600 11px ${SANS}`;
   ctx.textAlign = "center";
-  ctx.fillText("B R A V E   B U I L D   C E R T I F I C A T E", W / 2, 104);
+  ctx.fillText(passed ? "PASSED" : "FAILED", badgeX + badgeW / 2, P + 28);
 
-  ctx.strokeStyle = "#262626";
-  ctx.lineWidth = 1;
+  // Thin line under header
+  ctx.strokeStyle = "#1e1e1e";
   ctx.beginPath();
-  ctx.moveTo(W / 2 - 160, 116);
-  ctx.lineTo(W / 2 + 160, 116);
+  ctx.moveTo(P, P + 48);
+  ctx.lineTo(W - P, P + 48);
   ctx.stroke();
 
-  // Status badge
-  const badgeBg = passed ? "#059669" : "#dc2626";
-  const badgeText = passed ? "PASSED" : "FAILED";
-  ctx.textAlign = "center";
-  roundRect(ctx, W / 2 - 42, 128, 84, 26, 4);
-  ctx.fillStyle = badgeBg;
-  ctx.fill();
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "600 12px sans-serif";
-  ctx.fillText(badgeText, W / 2, 145);
-
-  // Metadata column — left third
+  // ── Row 2: Metadata grid (single row, 5 cols) ──
   ctx.textAlign = "left";
-  const col1 = 48;
-  let y = 180;
+  const metaY = P + 64;
+  const metaCols = [
+    ["ID", certificate.id.substring(0, 18) + "..."],
+    ["Issued", new Date(certificate.timestamp).toLocaleDateString()],
+    ["Profiles", String(certificate.profileCount)],
+    ["Tests", `${certificate.passCount}/${certificate.totalTests}`],
+    ["Build", certificate.braveVersion.substring(0, 24)],
+  ];
+  const metaColW = (W - P * 2) / metaCols.length;
+  for (let i = 0; i < metaCols.length; i++) {
+    const x = P + i * metaColW;
+    ctx.fillStyle = "#666";
+    ctx.font = `400 10px ${SANS}`;
+    ctx.fillText(metaCols[i]![0]!, x, metaY);
+    ctx.fillStyle = "#ccc";
+    ctx.font = `400 11px ${MONO}`;
+    ctx.fillText(metaCols[i]![1]!, x, metaY + 15);
+  }
 
-  const drawField = (label: string, value: string, yPos: number) => {
-    ctx.fillStyle = "#666666";
-    ctx.font = "500 10px sans-serif";
-    ctx.fillText(label, col1, yPos);
-    ctx.fillStyle = "#ededed";
-    ctx.font = "400 13px monospace";
-    ctx.fillText(truncateText(ctx, value, 250), col1, yPos + 16);
-  };
+  // Thin line
+  ctx.strokeStyle = "#1e1e1e";
+  ctx.beginPath();
+  ctx.moveTo(P, metaY + 28);
+  ctx.lineTo(W - P, metaY + 28);
+  ctx.stroke();
 
-  drawField("CERTIFICATE", certificate.id.substring(0, 36), y);
-  drawField("ISSUED", new Date(certificate.timestamp).toLocaleString(), y + 42);
-  drawField("PROFILES", String(certificate.profileCount), y + 84);
-  drawField("TESTS", `${certificate.passCount} / ${certificate.totalTests}`, y + 126);
-  drawField("BUILD", certificate.braveVersion, y + 168);
+  // ── Row 3: Sections (3 cols) + Hash/Uniqueness ──
+  const secY = metaY + 44;
+  const secArea = W - P * 2 - 180; // leave 180px for hash column
+  const secColW = secArea / 3;
 
-  // Section results — center
-  const secX = 330;
-  ctx.fillStyle = "#666666";
-  ctx.font = "500 10px sans-serif";
-  ctx.fillText("SECTIONS", secX, y);
+  ctx.fillStyle = "#666";
+  ctx.font = `400 10px ${SANS}`;
+  ctx.fillText("Sections", P, secY);
 
-  const secY = y + 20;
-  const colW = 175;
-  for (let i = 0; i < certificate.sectionResults.length; i++) {
-    const s = certificate.sectionResults[i];
-    const col = i % 2;
-    const row = Math.floor(i / 2);
-    const sx = secX + col * colW;
-    const sy = secY + row * 22;
+  const sr = certificate.sectionResults;
+  const secRows = Math.ceil(sr.length / 3);
+  for (let i = 0; i < sr.length; i++) {
+    const s = sr[i]!;
+    const col = i % 3;
+    const row = Math.floor(i / 3);
+    const sx = P + col * secColW;
+    const sy = secY + 16 + row * 20;
     const ok = s.passed === s.total;
 
     ctx.fillStyle = ok ? "#059669" : s.passed === 0 ? "#dc2626" : "#d97706";
     ctx.beginPath();
-    ctx.arc(sx + 4, sy + 4, 3, 0, Math.PI * 2);
+    ctx.arc(sx + 4, sy + 3, 2.5, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = "#ededed";
-    ctx.font = "400 12px sans-serif";
-    ctx.fillText(s.name, sx + 14, sy + 8);
+    ctx.fillStyle = "#ccc";
+    ctx.font = `400 11px ${SANS}`;
+    ctx.fillText(s.name, sx + 12, sy + 7);
 
-    ctx.fillStyle = "#666666";
-    ctx.font = "400 11px monospace";
-    ctx.fillText(`${s.passed}/${s.total}`, sx + colW - 36, sy + 8);
+    ctx.fillStyle = "#555";
+    ctx.font = `400 10px ${MONO}`;
+    const countStr = `${s.passed}/${s.total}`;
+    ctx.fillText(countStr, sx + secColW - 40, sy + 7);
   }
 
-  // Visual hash — right
-  const hashX = 710;
-  ctx.fillStyle = "#666666";
-  ctx.font = "500 10px sans-serif";
-  ctx.fillText("HASH", hashX, y);
+  // Hash grid — right column
+  const hashX = W - P - 150;
+  ctx.fillStyle = "#666";
+  ctx.font = `400 10px ${SANS}`;
+  ctx.fillText("Hash", hashX, secY);
 
   const pattern = generateVisualHashPattern(certificate.resultsHash);
-  const cellSize = 18;
-  const gap = 3;
-  for (let row = 0; row < 5; row++) {
-    for (let col = 0; col < 5; col++) {
-      const cx = hashX + col * (cellSize + gap);
-      const cy = y + 18 + row * (cellSize + gap);
-      ctx.fillStyle = pattern.grid[row][col]
-        ? pattern.colors[(row + col) % pattern.colors.length]
-        : "#1a1a1a";
-      roundRect(ctx, cx, cy, cellSize, cellSize, 3);
+  const cell = 16, g = 2;
+  for (let r = 0; r < 5; r++) {
+    for (let c = 0; c < 5; c++) {
+      ctx.fillStyle = pattern.grid[r]![c] ? pattern.colors[(r + c) % pattern.colors.length]! : "#151515";
+      roundRect(ctx, hashX + c * (cell + g), secY + 14 + r * (cell + g), cell, cell, 2);
       ctx.fill();
     }
   }
 
-  // Uniqueness
+  // Uniqueness — below hash
   if (crossProfile && crossProfile.macPerContext.total > 0) {
-    const uY = y + 140;
-    ctx.fillStyle = "#666666";
-    ctx.font = "500 10px sans-serif";
-    ctx.fillText("UNIQUENESS", hashX, uY);
-
-    const data = crossProfile.macPerContext;
-    const items = [["Audio", data.uniqueAudio], ["Canvas", data.uniqueCanvas], ["TZ", data.uniqueTimezones], ["Screen", data.uniqueScreens]] as const;
+    const uY = secY + 14 + 5 * (cell + g) + 10;
+    ctx.fillStyle = "#666";
+    ctx.font = `400 10px ${SANS}`;
+    ctx.fillText("Uniqueness", hashX, uY);
+    const d = crossProfile.macPerContext;
+    const items = [["Au", d.uniqueAudio], ["Cv", d.uniqueCanvas], ["Tz", d.uniqueTimezones], ["Sc", d.uniqueScreens]] as const;
     let ix = hashX;
     for (const [name, val] of items) {
-      ctx.fillStyle = val === data.total ? "#059669" : "#d97706";
-      ctx.font = "600 13px monospace";
-      ctx.fillText(`${val}/${data.total}`, ix, uY + 18);
-      ctx.fillStyle = "#666666";
-      ctx.font = "400 9px sans-serif";
-      ctx.fillText(name, ix, uY + 30);
-      ix += 60;
+      ctx.fillStyle = val === d.total ? "#059669" : "#d97706";
+      ctx.font = `500 11px ${MONO}`;
+      ctx.fillText(`${val}/${d.total}`, ix, uY + 15);
+      ctx.fillStyle = "#555";
+      ctx.font = `400 9px ${SANS}`;
+      ctx.fillText(name, ix, uY + 26);
+      ix += 38;
     }
   }
 
-  // Failures
+  // ── Row 4: Failures ──
+  const failY = secY + 16 + secRows * 20 + 16;
   if (certificate.failedTests.length > 0) {
-    const fY = 520;
-    ctx.strokeStyle = "#262626";
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = "#1e1e1e";
     ctx.beginPath();
-    ctx.moveTo(64, fY);
-    ctx.lineTo(W - 64, fY);
+    ctx.moveTo(P, failY);
+    ctx.lineTo(W - P, failY);
     ctx.stroke();
 
     ctx.fillStyle = "#dc2626";
-    ctx.font = "500 11px sans-serif";
-    ctx.fillText(`FAILURES (${certificate.failedTests.length})`, col1, fY + 20);
+    ctx.font = `500 11px ${SANS}`;
+    ctx.fillText(`Failures (${certificate.failedTests.length})`, P, failY + 18);
 
-    ctx.fillStyle = "#888888";
-    ctx.font = "400 10px monospace";
-    const maxShow = 6;
+    ctx.fillStyle = "#777";
+    ctx.font = `400 10px ${MONO}`;
+    const maxShow = 5;
     for (let i = 0; i < Math.min(certificate.failedTests.length, maxShow); i++) {
-      ctx.fillText(truncateText(ctx, certificate.failedTests[i], W - 120), col1 + 8, fY + 38 + i * 16);
+      ctx.fillText(truncate(ctx, certificate.failedTests[i]!, W - P * 2 - 16), P + 4, failY + 34 + i * 15);
     }
     if (certificate.failedTests.length > maxShow) {
-      ctx.fillStyle = "#555555";
-      ctx.fillText(`...and ${certificate.failedTests.length - maxShow} more`, col1 + 8, fY + 38 + maxShow * 16);
+      ctx.fillStyle = "#444";
+      ctx.fillText(`...and ${certificate.failedTests.length - maxShow} more`, P + 4, failY + 34 + maxShow * 15);
     }
   }
 
-  // Bottom hashes
-  const bY = H - 88;
-  ctx.strokeStyle = "#262626";
-  ctx.lineWidth = 1;
+  // ── Bottom: Hashes ──
+  const bY = H - P - 42;
+  ctx.strokeStyle = "#1e1e1e";
   ctx.beginPath();
-  ctx.moveTo(64, bY);
-  ctx.lineTo(W - 64, bY);
+  ctx.moveTo(P, bY);
+  ctx.lineTo(W - P, bY);
   ctx.stroke();
 
-  ctx.fillStyle = "#555555";
-  ctx.font = "400 9px sans-serif";
-  ctx.fillText("RESULTS HASH", col1, bY + 16);
-  ctx.fillStyle = "#888888";
-  ctx.font = "400 11px monospace";
-  ctx.fillText(certificate.resultsHash, col1, bY + 30);
+  ctx.fillStyle = "#444";
+  ctx.font = `400 9px ${SANS}`;
+  ctx.fillText("Results Hash", P, bY + 14);
+  ctx.fillStyle = "#666";
+  ctx.font = `400 10px ${MONO}`;
+  ctx.fillText(certificate.resultsHash, P, bY + 27);
 
-  ctx.fillStyle = "#555555";
-  ctx.font = "400 9px sans-serif";
-  ctx.fillText("SIGNATURE", col1, bY + 48);
-  ctx.fillStyle = "#888888";
-  ctx.font = "400 11px monospace";
-  ctx.fillText(certificate.signature, col1, bY + 62);
-
-  ctx.textAlign = "center";
-  ctx.fillStyle = "#333333";
-  ctx.font = "400 9px sans-serif";
-  ctx.fillText("Brave Tester", W / 2, H - 12);
-  ctx.textAlign = "left";
+  ctx.fillStyle = "#444";
+  ctx.font = `400 9px ${SANS}`;
+  ctx.fillText("Signature", W / 2, bY + 14);
+  ctx.fillStyle = "#666";
+  ctx.font = `400 10px ${MONO}`;
+  ctx.fillText(certificate.signature, W / 2, bY + 27);
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -255,9 +259,9 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.closePath();
 }
 
-function truncateText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string {
-  if (ctx.measureText(text).width <= maxWidth) return text;
+function truncate(ctx: CanvasRenderingContext2D, text: string, maxW: number): string {
+  if (ctx.measureText(text).width <= maxW) return text;
   let t = text;
-  while (t.length > 0 && ctx.measureText(t + "...").width > maxWidth) t = t.slice(0, -1);
-  return t + "...";
+  while (t.length > 0 && ctx.measureText(t + "…").width > maxW) t = t.slice(0, -1);
+  return t + "…";
 }
