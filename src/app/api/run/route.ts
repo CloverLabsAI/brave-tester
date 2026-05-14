@@ -22,8 +22,6 @@ const TEST_TIMEZONES = [
 // RFC 5737 TEST-NET-3 - reserved for documentation/testing
 const WEBRTC_TEST_IP = "203.0.113.1";
 
-const NUM_PROFILES = 4;
-
 function sendSSE(controller: ReadableStreamDefaultController, event: string, data: unknown) {
   const encoder = new TextEncoder();
   controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
@@ -165,9 +163,13 @@ function isMachO(filePath: string): boolean {
 
 export async function POST(request: Request) {
   let binaryPath: string | undefined;
+  let numProfiles = 4;
   try {
     const body = await request.json();
     binaryPath = body.binaryPath;
+    if (body.numProfiles && Number.isInteger(body.numProfiles) && body.numProfiles >= 2 && body.numProfiles <= 16) {
+      numProfiles = body.numProfiles;
+    }
   } catch {
     return new Response(JSON.stringify({ error: "Invalid or empty request body" }), {
       status: 400,
@@ -195,7 +197,7 @@ export async function POST(request: Request) {
       try {
         // Generate profiles with unique seeds
         const profiles: ProfileConfig[] = [];
-        for (let i = 0; i < NUM_PROFILES; i++) {
+        for (let i = 0; i < numProfiles; i++) {
           profiles.push(generateBraveProfile(i, `Profile ${String.fromCharCode(65 + i)}`));
         }
 
@@ -204,7 +206,7 @@ export async function POST(request: Request) {
           profileIndex: 0,
           profileName: "Launching Brave browser...",
           phase: "launch",
-          total: NUM_PROFILES,
+          total: numProfiles,
         });
 
         // Launch Brave
@@ -231,7 +233,7 @@ export async function POST(request: Request) {
           profileIndex: 0,
           profileName: "Creating all profiles simultaneously...",
           phase: "testing",
-          total: NUM_PROFILES,
+          total: numProfiles,
         });
 
         for (let i = 0; i < profiles.length; i++) {
@@ -267,7 +269,7 @@ export async function POST(request: Request) {
             profileIndex: i,
             profileName: profile.name,
             phase: "testing",
-            total: NUM_PROFILES,
+            total: numProfiles,
           });
 
           try {
@@ -301,7 +303,7 @@ export async function POST(request: Request) {
             profileIndex: 0,
             profileName: "Re-verifying all contexts after 5 seconds...",
             phase: "testing",
-            total: NUM_PROFILES,
+            total: numProfiles,
           });
 
           await new Promise(resolve => setTimeout(resolve, 5000));

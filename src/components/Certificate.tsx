@@ -16,6 +16,15 @@ export function Certificate({ results }: { results: FullTestResult }) {
     try {
       const allSectionResults: { name: string; passed: number; total: number }[] = [];
       const allFailedTests: string[] = [];
+      const issueMap = new Map<string, { check: string; category: string; severity: string; detail: string; affected: number }>();
+      const totalProfiles = results.profiles.length;
+
+      const severityMap: Record<string, string> = {
+        automation: "critical", lieDetection: "critical", headlessDetection: "critical",
+        chromiumAPIs: "high", crossSignal: "high", audioIntegrity: "high",
+        canvasNoiseDetection: "high", cssFingerprint: "high", webglRenderHash: "high",
+        iframeTesting: "high", workerConsistency: "high",
+      };
 
       for (const pr of results.profiles) {
         if (!pr.results) { allFailedTests.push(`${pr.profile.name}: Error - ${pr.error}`); continue; }
@@ -27,10 +36,28 @@ export function Certificate({ results }: { results: FullTestResult }) {
         }
         const failed = collectFailedTests(pr.results);
         for (const f of failed) allFailedTests.push(`${pr.profile.name}: ${f}`);
+
+        // Deduplicate issues
+        const allCats = { ...pr.results.core, ...pr.results.extended, ...pr.results.workers };
+        for (const [cat, checks] of Object.entries(allCats)) {
+          for (const [name, check] of Object.entries(checks)) {
+            if (!check || typeof check.passed !== "boolean" || check.passed) continue;
+            const key = `${cat}::${name}`;
+            const existing = issueMap.get(key);
+            if (existing) { existing.affected++; }
+            else { issueMap.set(key, { check: name, category: cat, severity: severityMap[cat] || "medium", detail: check.detail, affected: 1 }); }
+          }
+        }
         for (const m of pr.matchResults) {
           if (!m.passed) allFailedTests.push(`${pr.profile.name}: ${m.name} expected ${m.expected}, got ${m.actual}`);
         }
       }
+
+      const issues = Array.from(issueMap.values()).map(i => ({ ...i, total: totalProfiles }));
+      issues.sort((a, b) => {
+        const order: Record<string, number> = { critical: 0, high: 1, medium: 2 };
+        return (order[a.severity] ?? 2) - (order[b.severity] ?? 2);
+      });
 
       const cp = results.crossProfile;
       const macUnique = cp.macPerContext.total > 0
@@ -54,7 +81,7 @@ export function Certificate({ results }: { results: FullTestResult }) {
             braveVersion: ua,
             passCount: results.totalPassed, totalTests: results.totalChecks,
             overallPass: results.totalPassed === results.totalChecks,
-            sectionResults: allSectionResults, failedTests: allFailedTests.slice(0, 20),
+            sectionResults: allSectionResults, failedTests: allFailedTests.slice(0, 20), issues: issues.slice(0, 10),
             profileCount: results.profiles.length,
           },
         }),

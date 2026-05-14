@@ -9,13 +9,14 @@ import type { FullTestResult, ProfileResult, SSEEvent } from "@/lib/types";
 
 interface TestRunnerProps {
   binaryPath: string;
+  numProfiles: number;
   running: boolean;
   results: FullTestResult | null;
   onComplete: (result: FullTestResult) => void;
   onReset: () => void;
 }
 
-export function TestRunner({ binaryPath, running, results, onComplete, onReset }: TestRunnerProps) {
+export function TestRunner({ binaryPath, numProfiles, running, results, onComplete, onReset }: TestRunnerProps) {
   const [profileResults, setProfileResults] = useState<ProfileResult[]>([]);
   const [currentProfile, setCurrentProfile] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -43,7 +44,7 @@ export function TestRunner({ binaryPath, running, results, onComplete, onReset }
         const res = await fetch("/api/run", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ binaryPath }),
+          body: JSON.stringify({ binaryPath, numProfiles }),
           signal: abort.signal,
         });
 
@@ -96,7 +97,7 @@ export function TestRunner({ binaryPath, running, results, onComplete, onReset }
 
     runTests();
     return () => { abort.abort(); };
-  }, [running, binaryPath]);
+  }, [running, binaryPath, numProfiles]);
 
   if (running && !error) {
     return (

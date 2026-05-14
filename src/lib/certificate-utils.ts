@@ -208,9 +208,10 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
     }
   }
 
-  // ── Row 4: Failures ──
+  // ── Row 4: Issues (deduplicated) ──
+  const issues = certificate.issues || [];
   const failY = secY + 16 + secRows * 20 + 16;
-  if (certificate.failedTests.length > 0) {
+  if (issues.length > 0) {
     ctx.strokeStyle = "#1e1e1e";
     ctx.beginPath();
     ctx.moveTo(P, failY);
@@ -219,17 +220,45 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
 
     ctx.fillStyle = "#dc2626";
     ctx.font = `500 11px ${SANS}`;
-    ctx.fillText(`Failures (${certificate.failedTests.length})`, P, failY + 18);
+    ctx.fillText(`Issues (${issues.length})`, P, failY + 18);
 
-    ctx.fillStyle = "#777";
-    ctx.font = `400 10px ${MONO}`;
-    const maxShow = 5;
-    for (let i = 0; i < Math.min(certificate.failedTests.length, maxShow); i++) {
-      ctx.fillText(truncate(ctx, certificate.failedTests[i]!, W - P * 2 - 16), P + 4, failY + 34 + i * 15);
+    const sevColors: Record<string, string> = { critical: "#ef4444", high: "#f97316", medium: "#eab308" };
+    const maxShow = 6;
+    for (let i = 0; i < Math.min(issues.length, maxShow); i++) {
+      const issue = issues[i]!;
+      const iy = failY + 36 + i * 18;
+
+      // Severity dot
+      ctx.fillStyle = sevColors[issue.severity] || "#eab308";
+      ctx.beginPath();
+      ctx.arc(P + 4, iy + 2, 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Category + check name
+      ctx.fillStyle = "#888";
+      ctx.font = `400 10px ${SANS}`;
+      const label = `${issue.category} · ${issue.check}`;
+      ctx.fillText(truncate(ctx, label, 300), P + 14, iy + 6);
+
+      // Severity label
+      ctx.fillStyle = sevColors[issue.severity] || "#eab308";
+      ctx.font = `400 9px ${SANS}`;
+      ctx.fillText(issue.severity, P + 320, iy + 6);
+
+      // Affected count
+      ctx.fillStyle = "#555";
+      ctx.font = `400 9px ${MONO}`;
+      ctx.fillText(`${issue.affected}/${issue.total}`, P + 380, iy + 6);
+
+      // Detail
+      ctx.fillStyle = "#555";
+      ctx.font = `400 9px ${MONO}`;
+      ctx.fillText(truncate(ctx, issue.detail, W - P * 2 - 430), P + 420, iy + 6);
     }
-    if (certificate.failedTests.length > maxShow) {
+    if (issues.length > maxShow) {
       ctx.fillStyle = "#444";
-      ctx.fillText(`...and ${certificate.failedTests.length - maxShow} more`, P + 4, failY + 34 + maxShow * 15);
+      ctx.font = `400 10px ${SANS}`;
+      ctx.fillText(`...and ${issues.length - maxShow} more`, P + 14, failY + 36 + maxShow * 18);
     }
   }
 

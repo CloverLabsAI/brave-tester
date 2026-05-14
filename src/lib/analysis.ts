@@ -133,6 +133,7 @@ export function buildCertificatePayload(
     resultsHash,
     sectionResults,
     failedTests,
+    issues: [],
     profileCount: 1,
   };
 }

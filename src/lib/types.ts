@@ -158,6 +158,7 @@ export interface CertificateData {
   signature: string;
   sectionResults: { name: string; passed: number; total: number }[];
   failedTests: string[];
+  issues: { check: string; category: string; severity: string; affected: number; total: number; detail: string }[];
   profileCount: number;
   crossProfile?: CrossProfileAnalysis;
 }

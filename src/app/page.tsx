@@ -6,6 +6,7 @@ import type { FullTestResult } from "@/lib/types";
 
 export default function Home() {
   const [binaryPath, setBinaryPath] = useState("");
+  const [numProfiles, setNumProfiles] = useState(4);
   const [testState, setTestState] = useState<"idle" | "running" | "complete">("idle");
   const [results, setResults] = useState<FullTestResult | null>(null);
   const [browsing, setBrowsing] = useState(false);
@@ -36,7 +37,7 @@ export default function Home() {
           <div className="space-y-2">
             <h1 className="text-2xl font-semibold tracking-tight">Stealth Test Runner</h1>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
-              Verify your Brave stealth build passes anti-detection checks. Runs 4 seed-based
+              Verify your Brave stealth build passes anti-detection checks. Runs seed-based
               profiles simultaneously and checks for fingerprint isolation, self-destruct,
               and cross-profile uniqueness.
             </p>
@@ -63,9 +64,28 @@ export default function Home() {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Profiles</label>
+              <div className="flex gap-1.5">
+                {[2, 4, 6, 8].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => setNumProfiles(n)}
+                    className={`h-9 w-12 rounded-md text-sm transition-colors ${
+                      numProfiles === n
+                        ? "bg-[#FB542B] text-white"
+                        : "border border-border text-muted-foreground hover:text-foreground hover:bg-accent"
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="flex items-center justify-between pt-1">
               <p className="text-xs text-muted-foreground">
-                4 profiles &middot; simultaneous contexts &middot; cross-contamination check
+                {numProfiles} profiles &middot; simultaneous contexts &middot; cross-contamination check
               </p>
               <button
                 onClick={() => { if (binaryPath.trim()) { setTestState("running"); setResults(null); } }}
@@ -82,6 +102,7 @@ export default function Home() {
       {testState !== "idle" && (
         <TestRunner
           binaryPath={binaryPath}
+          numProfiles={numProfiles}
           running={testState === "running"}
           results={results}
           onComplete={handleComplete}
