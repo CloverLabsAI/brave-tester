@@ -53,13 +53,22 @@ export function Certificate({ results }: { results: FullTestResult }) {
         }
       }
 
+      // Add uniqueness issues — same logic as IssuesPanel
+      const cp = results.crossProfile;
+      if (cp.macPerContext.total > 1) {
+        if (cp.macPerContext.uniqueAudio < cp.macPerContext.total) {
+          issueMap.set("uniqueness::audio", { check: "Audio not unique across seeds", category: "uniqueness", severity: "critical", detail: `${cp.macPerContext.uniqueAudio}/${cp.macPerContext.total} unique audio hashes`, affected: 1 });
+        }
+        if (cp.macPerContext.uniqueCanvas < cp.macPerContext.total) {
+          issueMap.set("uniqueness::canvas", { check: "Canvas not unique across seeds", category: "uniqueness", severity: "critical", detail: `${cp.macPerContext.uniqueCanvas}/${cp.macPerContext.total} unique canvas hashes`, affected: 1 });
+        }
+      }
+
       const issues = Array.from(issueMap.values()).map(i => ({ ...i, total: totalProfiles }));
       issues.sort((a, b) => {
         const order: Record<string, number> = { critical: 0, high: 1, medium: 2 };
         return (order[a.severity] ?? 2) - (order[b.severity] ?? 2);
       });
-
-      const cp = results.crossProfile;
       const macUnique = cp.macPerContext.total > 0
         ? [cp.macPerContext.uniqueAudio, cp.macPerContext.uniqueCanvas, cp.macPerContext.uniqueTimezones]
             .filter(v => v === cp.macPerContext.total).length : 0;
