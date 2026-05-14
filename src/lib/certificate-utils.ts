@@ -55,20 +55,31 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
   // after w-full is applied. Falls back to offsetWidth or parent measurement.
   const containerW = canvas.clientWidth || canvas.offsetWidth || canvas.parentElement?.clientWidth || 960;
   const W = containerW;
-  const H = Math.round(W * 0.62);
+  const P = 40;
   const dpr = 2;
+
+  // Calculate height dynamically based on content
+  const sr = certificate.sectionResults;
+  const secRows = Math.ceil(sr.length / 3);
+  const issues = certificate.issues || [];
+  const issueRows = Math.min(issues.length, 6) + (issues.length > 6 ? 1 : 0);
+
+  const headerH = 44; // logo + title + badge + line
+  const metaH = 80; // two rows of metadata
+  const secH = 30 + secRows * 20; // section label + rows
+  const issueH = issues.length > 0 ? 30 + issueRows * 18 + 16 : 0; // divider + label + rows
+  const bottomH = 60; // hashes + footer
+  const H = P + headerH + metaH + secH + issueH + bottomH + P;
+
   canvas.width = W * dpr;
   canvas.height = H * dpr;
-  // Remove any inline style so CSS w-full controls sizing
   canvas.style.width = "";
   canvas.style.height = "";
   const ctx = canvas.getContext("2d")!;
   ctx.scale(dpr, dpr);
 
-  const P = 40; // content padding from canvas edge
   const passed = certificate.overallPass;
 
-  // BG — no inner border, the card component provides the border
   ctx.fillStyle = "#0a0a0a";
   ctx.fillRect(0, 0, W, H);
 
@@ -147,8 +158,6 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
   ctx.font = `400 10px ${SANS}`;
   ctx.fillText("Sections", P, secY);
 
-  const sr = certificate.sectionResults;
-  const secRows = Math.ceil(sr.length / 3);
   for (let i = 0; i < sr.length; i++) {
     const s = sr[i]!;
     const col = i % 3;
@@ -209,7 +218,6 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
   }
 
   // ── Row 4: Issues (deduplicated) ──
-  const issues = certificate.issues || [];
   const failY = secY + 16 + secRows * 20 + 16;
   if (issues.length > 0) {
     ctx.strokeStyle = "#1e1e1e";
