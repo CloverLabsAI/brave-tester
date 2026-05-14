@@ -60,7 +60,9 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
   const ctx = canvas.getContext("2d")!;
   ctx.scale(dpr, dpr);
 
-  const P = 56; // padding
+  const EDGE = 32; // outer margin to canvas edge
+  const INSET = 28; // inner margin from border to content
+  const P = EDGE + INSET; // total content padding
   const passed = certificate.overallPass;
 
   // BG
@@ -68,69 +70,81 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
   ctx.fillRect(0, 0, W, H);
   ctx.strokeStyle = "#1e1e1e";
   ctx.lineWidth = 1;
-  ctx.strokeRect(P - 0.5, P - 0.5, W - P * 2 + 1, H - P * 2 + 1);
+  ctx.strokeRect(EDGE, EDGE, W - EDGE * 2, H - EDGE * 2);
 
   // ── Row 1: Logo + title + badge ──
   try {
     const logo = await loadImage("/brave-logo.svg");
-    ctx.drawImage(logo, P + 1, P + 12, 22, 25);
+    ctx.drawImage(logo, P + 1, P + 8, 22, 25);
   } catch {}
 
   ctx.font = `500 14px ${SANS}`;
   ctx.fillStyle = "#ededed";
   ctx.textAlign = "left";
-  ctx.fillText("Brave Build Certificate", P + 30, P + 30);
+  ctx.fillText("Brave Build Certificate", P + 30, P + 26);
 
-  // Badge — right aligned
   const badgeW = 72, badgeH = 24;
   const badgeX = W - P - badgeW;
-  roundRect(ctx, badgeX, P + 12, badgeW, badgeH, 4);
+  roundRect(ctx, badgeX, P + 8, badgeW, badgeH, 4);
   ctx.fillStyle = passed ? "#059669" : "#dc2626";
   ctx.fill();
   ctx.fillStyle = "#fff";
   ctx.font = `600 11px ${SANS}`;
   ctx.textAlign = "center";
-  ctx.fillText(passed ? "PASSED" : "FAILED", badgeX + badgeW / 2, P + 28);
+  ctx.fillText(passed ? "PASSED" : "FAILED", badgeX + badgeW / 2, P + 24);
 
-  // Thin line under header
   ctx.strokeStyle = "#1e1e1e";
   ctx.beginPath();
-  ctx.moveTo(P, P + 48);
-  ctx.lineTo(W - P, P + 48);
+  ctx.moveTo(P, P + 44);
+  ctx.lineTo(W - P, P + 44);
   ctx.stroke();
 
-  // ── Row 2: Metadata grid (single row, 5 cols) ──
+  // ── Row 2: Metadata ──
   ctx.textAlign = "left";
-  const metaY = P + 64;
+  const metaY = P + 60;
   const contentW = W - P * 2;
-  const metaCols: [string, string, number][] = [
-    ["ID", certificate.id.substring(0, 24) + "...", 0.28],
-    ["Issued", new Date(certificate.timestamp).toLocaleDateString(), 0.16],
-    ["Profiles", String(certificate.profileCount), 0.10],
-    ["Tests", `${certificate.passCount}/${certificate.totalTests}`, 0.14],
-    ["Build", certificate.braveVersion.substring(0, 32), 0.32],
+
+  // ID + Build on row 1 (they need the most space)
+  ctx.fillStyle = "#666";
+  ctx.font = `400 10px ${SANS}`;
+  ctx.fillText("ID", P, metaY);
+  ctx.fillStyle = "#ccc";
+  ctx.font = `400 11px ${MONO}`;
+  ctx.fillText(certificate.id, P, metaY + 15);
+
+  ctx.fillStyle = "#666";
+  ctx.font = `400 10px ${SANS}`;
+  ctx.fillText("Build", P + contentW * 0.5, metaY);
+  ctx.fillStyle = "#ccc";
+  ctx.font = `400 11px ${MONO}`;
+  ctx.fillText(truncate(ctx, certificate.braveVersion, contentW * 0.48), P + contentW * 0.5, metaY + 15);
+
+  // Issued, Profiles, Tests on row 2
+  const meta2Y = metaY + 36;
+  const meta2Cols: [string, string][] = [
+    ["Issued", new Date(certificate.timestamp).toLocaleDateString()],
+    ["Profiles", String(certificate.profileCount)],
+    ["Tests", `${certificate.passCount}/${certificate.totalTests}`],
   ];
-  let metaX = P;
-  for (const [label, value, pct] of metaCols) {
-    const colW = contentW * pct;
+  const meta2ColW = contentW / 3;
+  for (let i = 0; i < meta2Cols.length; i++) {
+    const x = P + i * meta2ColW;
     ctx.fillStyle = "#666";
     ctx.font = `400 10px ${SANS}`;
-    ctx.fillText(label, metaX, metaY);
+    ctx.fillText(meta2Cols[i]![0]!, x, meta2Y);
     ctx.fillStyle = "#ccc";
     ctx.font = `400 11px ${MONO}`;
-    ctx.fillText(truncate(ctx, value, colW - 8), metaX, metaY + 15);
-    metaX += colW;
+    ctx.fillText(meta2Cols[i]![1]!, x, meta2Y + 15);
   }
 
-  // Thin line
   ctx.strokeStyle = "#1e1e1e";
   ctx.beginPath();
-  ctx.moveTo(P, metaY + 28);
-  ctx.lineTo(W - P, metaY + 28);
+  ctx.moveTo(P, meta2Y + 28);
+  ctx.lineTo(W - P, meta2Y + 28);
   ctx.stroke();
 
-  // ── Row 3: Sections (3 cols) + Hash/Uniqueness ──
-  const secY = metaY + 44;
+  // ── Sections (3 cols) + Hash/Uniqueness ──
+  const secY = meta2Y + 44;
   const secArea = W - P * 2 - 180; // leave 180px for hash column
   const secColW = secArea / 3;
 
