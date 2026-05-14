@@ -65,17 +65,12 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
   const ctx = canvas.getContext("2d")!;
   ctx.scale(dpr, dpr);
 
-  const EDGE = 32; // outer margin to canvas edge
-  const INSET = 28; // inner margin from border to content
-  const P = EDGE + INSET; // total content padding
+  const P = 40; // content padding from canvas edge
   const passed = certificate.overallPass;
 
-  // BG
+  // BG — no inner border, the card component provides the border
   ctx.fillStyle = "#0a0a0a";
   ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = "#1e1e1e";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(EDGE, EDGE, W - EDGE * 2, H - EDGE * 2);
 
   // ── Row 1: Logo + title + badge ──
   try {
