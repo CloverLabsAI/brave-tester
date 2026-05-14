@@ -59,14 +59,11 @@ export function Certificate({ results }: { results: FullTestResult }) {
         return (order[a.severity] ?? 2) - (order[b.severity] ?? 2);
       });
 
-      // Uniqueness: only Audio and Canvas matter — different seeds must produce
-      // different fingerprints. Screen collisions are expected (12 profiles, 12 slots).
-      // Timezone is our input, not the browser's output.
       const cp = results.crossProfile;
       const macUnique = cp.macPerContext.total > 0
-        ? [cp.macPerContext.uniqueAudio, cp.macPerContext.uniqueCanvas]
+        ? [cp.macPerContext.uniqueAudio, cp.macPerContext.uniqueCanvas, cp.macPerContext.uniqueTimezones]
             .filter(v => v === cp.macPerContext.total).length : 0;
-      if (cp.macPerContext.total > 0) allSectionResults.push({ name: "Uniqueness", passed: macUnique, total: 2 });
+      if (cp.macPerContext.total > 0) allSectionResults.push({ name: "Uniqueness", passed: macUnique, total: 3 });
 
       const resultsHash = await computeResultsHash({
         profiles: results.profiles.map(p => ({ name: p.profile.name, grade: p.grade, passCount: p.passCount, totalChecks: p.totalChecks })),
