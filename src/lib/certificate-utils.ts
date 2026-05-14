@@ -64,12 +64,13 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
   const issues = certificate.issues || [];
   const issueRows = Math.min(issues.length, 6) + (issues.length > 6 ? 1 : 0);
 
-  const headerH = 44; // logo + title + badge + line
-  const metaH = 80; // two rows of metadata
-  const secH = 30 + secRows * 20; // section label + rows
-  const issueH = issues.length > 0 ? 30 + issueRows * 18 + 16 : 0; // divider + label + rows
-  const bottomH = 60; // hashes + footer
-  const H = P + headerH + metaH + secH + issueH + bottomH + P;
+  const headerH = 44;
+  const metaH = 80;
+  const secH = 30 + secRows * 20;
+  const hashRowH = 14 + 5 * 16 + 24; // hash grid + uniqueness
+  const issueH = issues.length > 0 ? 30 + issueRows * 18 + 16 : 0;
+  const bottomH = 70;
+  const H = P + headerH + metaH + secH + hashRowH + issueH + bottomH + P;
 
   canvas.width = W * dpr;
   canvas.height = H * dpr;
@@ -149,11 +150,10 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
   ctx.lineTo(W - P, buildY + 28);
   ctx.stroke();
 
-  // ── Sections (2 cols) + Hash/Uniqueness ──
+  // ── Sections (2 cols, full width) ──
+  // Hash + uniqueness goes BELOW sections, not beside them
   const secY = buildY + 44;
-  const hashColW = 200;
-  const secArea = W - P * 2 - hashColW;
-  const secColW = secArea / 2;
+  const secColW = (W - P * 2) / 2;
 
   ctx.fillStyle = "#666";
   ctx.font = `400 10px ${SANS}`;
@@ -174,52 +174,57 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
 
     ctx.fillStyle = "#ccc";
     ctx.font = `400 11px ${SANS}`;
-    ctx.fillText(s.name, sx + 12, sy + 7);
+    ctx.fillText(s.name, sx + 14, sy + 7);
 
     ctx.fillStyle = "#555";
     ctx.font = `400 10px ${MONO}`;
-    const countStr = `${s.passed}/${s.total}`;
-    ctx.fillText(countStr, sx + secColW - 16, sy + 7);
+    ctx.textAlign = "right";
+    ctx.fillText(`${s.passed}/${s.total}`, sx + secColW - 20, sy + 7);
+    ctx.textAlign = "left";
   }
 
-  // Hash grid — right column
-  const hashX = W - P - hashColW + 20;
+  // Hash + Uniqueness — inline row below sections
+  const hashY = secY + 16 + secRows * 20 + 14;
+
+  const hashX = P;
+  // Hash grid
   ctx.fillStyle = "#666";
   ctx.font = `400 10px ${SANS}`;
-  ctx.fillText("Hash", hashX, secY);
+  ctx.fillText("Hash", hashX, hashY);
 
   const pattern = generateVisualHashPattern(certificate.resultsHash);
-  const cell = 16, g = 2;
+  const cell = 14, g = 2;
   for (let r = 0; r < 5; r++) {
     for (let c = 0; c < 5; c++) {
       ctx.fillStyle = pattern.grid[r]![c] ? pattern.colors[(r + c) % pattern.colors.length]! : "#151515";
-      roundRect(ctx, hashX + c * (cell + g), secY + 14 + r * (cell + g), cell, cell, 2);
+      roundRect(ctx, hashX + c * (cell + g), hashY + 14 + r * (cell + g), cell, cell, 2);
       ctx.fill();
     }
   }
 
-  // Uniqueness — below hash
+  // Uniqueness — to the right of hash
+  const uX = hashX + 5 * (cell + g) + 30;
   if (crossProfile && crossProfile.macPerContext.total > 0) {
-    const uY = secY + 14 + 5 * (cell + g) + 10;
     ctx.fillStyle = "#666";
     ctx.font = `400 10px ${SANS}`;
-    ctx.fillText("Uniqueness", hashX, uY);
+    ctx.fillText("Uniqueness", uX, hashY);
     const d = crossProfile.macPerContext;
     const items = [["Audio", d.uniqueAudio], ["Canvas", d.uniqueCanvas], ["TZ", d.uniqueTimezones], ["Screen", d.uniqueScreens]] as const;
-    let ix = hashX;
+    let ix = uX;
     for (const [name, val] of items) {
       ctx.fillStyle = val === d.total ? "#059669" : "#d97706";
       ctx.font = `500 11px ${MONO}`;
-      ctx.fillText(`${val}/${d.total}`, ix, uY + 15);
+      ctx.fillText(`${val}/${d.total}`, ix, hashY + 18);
       ctx.fillStyle = "#555";
       ctx.font = `400 9px ${SANS}`;
-      ctx.fillText(name, ix, uY + 26);
-      ix += 46;
+      ctx.fillText(name, ix, hashY + 30);
+      ix += 56;
     }
   }
 
-  // ── Row 4: Issues (deduplicated) ──
-  const failY = secY + 16 + secRows * 20 + 16;
+  // ── Issues (deduplicated) ──
+  const hashEndY = hashY + 14 + 5 * (cell + g) + 8;
+  const failY = hashEndY;
   if (issues.length > 0) {
     ctx.strokeStyle = "#1e1e1e";
     ctx.beginPath();

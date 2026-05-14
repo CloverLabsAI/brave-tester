@@ -87,6 +87,40 @@ export function IssuesPanel({ results }: { results: FullTestResult }) {
       }
     }
 
+    // Uniqueness issues — different seeds should produce different fingerprints.
+    // Audio/Canvas collisions mean the seed derivation isn't working.
+    const cp = results.crossProfile?.macPerContext;
+    if (cp && cp.total > 1) {
+      if (cp.uniqueAudio < cp.total) {
+        issueMap.set("uniqueness::audio", {
+          check: "Audio not unique across seeds",
+          category: "uniqueness",
+          detail: `${cp.uniqueAudio}/${cp.total} unique audio hashes. Different seeds must produce different AudioContext fingerprints. BraveSessionCache::GetAudioFarblingHelper() may not be using the per-context custom_farbling_token_.`,
+          severity: "critical",
+          affectedProfiles: [`${cp.uniqueAudio}/${cp.total}`],
+        });
+      }
+      if (cp.uniqueCanvas < cp.total) {
+        issueMap.set("uniqueness::canvas", {
+          check: "Canvas not unique across seeds",
+          category: "uniqueness",
+          detail: `${cp.uniqueCanvas}/${cp.total} unique canvas hashes. Different seeds must produce different canvas fingerprints. BraveSessionCache::PerturbPixelsInternal() may not be using the per-context custom_farbling_token_.`,
+          severity: "critical",
+          affectedProfiles: [`${cp.uniqueCanvas}/${cp.total}`],
+        });
+      }
+      if (cp.uniqueScreens < cp.total && cp.total <= 12) {
+        // Only flag if profiles <= 12 (number of screen profiles). Beyond that, collisions are expected.
+        issueMap.set("uniqueness::screen", {
+          check: "Screen not fully unique across seeds",
+          category: "uniqueness",
+          detail: `${cp.uniqueScreens}/${cp.total} unique screens. Brave selects from 12 Mac profiles via prng() % 12. With ${cp.total} seeds, some collision is expected (birthday paradox).`,
+          severity: "medium",
+          affectedProfiles: [`${cp.uniqueScreens}/${cp.total}`],
+        });
+      }
+    }
+
     const all = Array.from(issueMap.values());
     all.sort((a, b) => ({ critical: 0, high: 1, medium: 2 }[a.severity]) - ({ critical: 0, high: 1, medium: 2 }[b.severity]));
     return all;
