@@ -60,7 +60,7 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
 
   // Calculate height dynamically based on content
   const sr = certificate.sectionResults;
-  const secRows = Math.ceil(sr.length / 3);
+  const secRows = Math.ceil(sr.length / 2);
   const issues = certificate.issues || [];
   const issueRows = Math.min(issues.length, 6) + (issues.length > 6 ? 1 : 0);
 
@@ -149,10 +149,11 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
   ctx.lineTo(W - P, buildY + 28);
   ctx.stroke();
 
-  // ── Sections (3 cols) + Hash/Uniqueness ──
+  // ── Sections (2 cols) + Hash/Uniqueness ──
   const secY = buildY + 44;
-  const secArea = W - P * 2 - 180; // leave 180px for hash column
-  const secColW = secArea / 3;
+  const hashColW = 200;
+  const secArea = W - P * 2 - hashColW;
+  const secColW = secArea / 2;
 
   ctx.fillStyle = "#666";
   ctx.font = `400 10px ${SANS}`;
@@ -160,8 +161,8 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
 
   for (let i = 0; i < sr.length; i++) {
     const s = sr[i]!;
-    const col = i % 3;
-    const row = Math.floor(i / 3);
+    const col = i % 2;
+    const row = Math.floor(i / 2);
     const sx = P + col * secColW;
     const sy = secY + 16 + row * 20;
     const ok = s.passed === s.total;
@@ -178,11 +179,11 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
     ctx.fillStyle = "#555";
     ctx.font = `400 10px ${MONO}`;
     const countStr = `${s.passed}/${s.total}`;
-    ctx.fillText(countStr, sx + secColW - 40, sy + 7);
+    ctx.fillText(countStr, sx + secColW - 16, sy + 7);
   }
 
   // Hash grid — right column
-  const hashX = W - P - 150;
+  const hashX = W - P - hashColW + 20;
   ctx.fillStyle = "#666";
   ctx.font = `400 10px ${SANS}`;
   ctx.fillText("Hash", hashX, secY);
@@ -270,8 +271,11 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
     }
   }
 
-  // ── Bottom: Hashes ──
-  const bY = H - P - 42;
+  // ── Bottom: Hashes — positioned after issues ──
+  const issueEndY = issues.length > 0
+    ? failY + 36 + Math.min(issues.length, 6) * 18 + (issues.length > 6 ? 18 : 0)
+    : failY;
+  const bY = issueEndY + 16;
   ctx.strokeStyle = "#1e1e1e";
   ctx.beginPath();
   ctx.moveTo(P, bY);
