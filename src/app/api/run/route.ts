@@ -164,7 +164,16 @@ function isMachO(filePath: string): boolean {
 }
 
 export async function POST(request: Request) {
-  const { binaryPath } = await request.json();
+  let binaryPath: string | undefined;
+  try {
+    const body = await request.json();
+    binaryPath = body.binaryPath;
+  } catch {
+    return new Response(JSON.stringify({ error: "Invalid or empty request body" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
   if (!binaryPath) {
     return new Response(JSON.stringify({ error: "binaryPath required" }), {
