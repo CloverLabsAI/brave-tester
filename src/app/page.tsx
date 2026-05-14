@@ -67,7 +67,7 @@ export default function Home() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Profiles</label>
               <div className="flex gap-1.5">
-                {[2, 4, 6, 8].map((n) => (
+                {[4, 6, 8, 12].map((n) => (
                   <button
                     key={n}
                     onClick={() => setNumProfiles(n)}
