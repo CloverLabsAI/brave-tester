@@ -71,7 +71,7 @@ export function Certificate({ results }: { results: FullTestResult }) {
 
   return (
     <div className="space-y-3">
-      <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+      <h3 className="text-sm text-muted-foreground">
         Certificate
       </h3>
 

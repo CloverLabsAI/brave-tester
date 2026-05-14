@@ -151,7 +151,7 @@ export function TestRunner({ binaryPath, running, results, onComplete, onReset }
 
         {/* Profile cards */}
         <div className="space-y-3">
-          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          <h3 className="text-sm text-muted-foreground">
             Profiles
           </h3>
           <div className="grid grid-cols-4 gap-3">

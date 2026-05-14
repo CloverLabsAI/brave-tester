@@ -122,7 +122,7 @@ export function IssuesPanel({ results }: { results: FullTestResult }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+        <h3 className="text-sm text-muted-foreground">
           Issues ({issues.length})
         </h3>
         <button
@@ -145,17 +145,20 @@ export function IssuesPanel({ results }: { results: FullTestResult }) {
             const sev = SEVERITY_STYLES[issue.severity];
             return (
               <div key={i} className="px-5 py-3 flex items-start gap-3">
-                <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${sev.dot}`} />
+                <div className={`w-1.5 h-1.5 rounded-full mt-[7px] shrink-0 ${sev.dot}`} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[11px] font-mono text-muted-foreground">{issue.category}</span>
-                    <span className="text-sm">{issue.check}</span>
+                    <span className="text-sm text-foreground">
+                      <span className="text-muted-foreground">{issue.category}</span>
+                      {" · "}
+                      {issue.check}
+                    </span>
                     <span className={`text-[10px] px-1.5 py-0.5 rounded ${sev.bg} ${sev.text}`}>
                       {sev.label}
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5 truncate">{issue.detail}</p>
-                  <p className="text-[10px] text-muted-foreground/50 mt-0.5">
+                  <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{issue.detail}</p>
+                  <p className="text-xs text-muted-foreground/50 mt-1">
                     {issue.affectedProfiles.length}/{totalProfiles} profiles
                   </p>
                 </div>

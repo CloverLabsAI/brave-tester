@@ -26,7 +26,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased min-h-screen`}>
         <div className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-50">
-          <div className="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
+          <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <img src="/brave-logo.svg" alt="" className="h-5 w-auto" />
               <span className="text-sm font-semibold tracking-tight text-foreground">
@@ -43,7 +43,7 @@ export default function RootLayout({
             </a>
           </div>
         </div>
-        <main className="max-w-3xl mx-auto px-6 py-10">
+        <main className="max-w-5xl mx-auto px-6 py-10">
           {children}
         </main>
       </body>

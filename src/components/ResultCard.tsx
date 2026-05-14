@@ -63,7 +63,7 @@ export function ResultCard({ profileResult }: { profileResult: ProfileResult }) 
       {/* Match verification */}
       {matchResults.length > 0 && (
         <div className="px-5 py-4 border-b border-border">
-          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+          <h4 className="text-sm text-muted-foreground mb-2">
             Verification
           </h4>
           <div className="space-y-1">
@@ -81,7 +81,7 @@ export function ResultCard({ profileResult }: { profileResult: ProfileResult }) 
 
       {/* Fingerprints */}
       <div className="px-5 py-4 border-b border-border">
-        <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
+        <h4 className="text-sm text-muted-foreground mb-3">
           Fingerprints
         </h4>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3 text-xs">
@@ -105,7 +105,7 @@ export function ResultCard({ profileResult }: { profileResult: ProfileResult }) 
 
       {/* Detailed checks */}
       <div className="px-5 py-4 space-y-2">
-        <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+        <h4 className="text-sm text-muted-foreground mb-2">
           Checks
         </h4>
         {Object.entries(allCategories).map(([category, checks]) => {
