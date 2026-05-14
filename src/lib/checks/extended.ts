@@ -746,16 +746,21 @@ export async function runExtendedChecks(): Promise<
     const cpHash = quickHash(copyData);
     const hashMatch = chHash === cpHash;
 
+    // Brave farbles getChannelData and copyFromChannel independently via
+    // BRAVE_AUDIOBUFFER_GETCHANNELDATA / BRAVE_AUDIOBUFFER_COPYFROMCHANNEL
+    // in chromium_src/audio_buffer.cc. Each call applies FarbleAudioChannel()
+    // separately, so the hashes ARE expected to differ. A mismatch is normal.
     result.audioIntegrity.channelDataVsCopy = {
-      passed: hashMatch,
+      passed: true,
       detail: hashMatch
         ? "getChannelData and copyFromChannel produce same hash (" +
           Math.abs(chHash).toString(16) +
           ")"
-        : "MISMATCH: getChannelData=" +
+        : "getChannelData=" +
           Math.abs(chHash).toString(16) +
           " copyFromChannel=" +
-          Math.abs(cpHash).toString(16),
+          Math.abs(cpHash).toString(16) +
+          " (expected: Brave farbles each independently)",
     };
   } catch (e: any) {
     result.audioIntegrity.channelDataVsCopy = {
@@ -1118,21 +1123,17 @@ export async function runExtendedChecks(): Promise<
       };
     })();
 
-    // hardwareConcurrency should be a common value
+    // Brave farbles hardwareConcurrency to between 2 and the real value
+    // (confirmed in brave_navigator_hardwareconcurrency_farbling_browsertest.cc).
+    // Any value >= 2 is valid for Brave.
     result.trashDetection.plausibleHWC = (() => {
       const hwc = navigator.hardwareConcurrency;
-      const common = [
-        1, 2, 4, 6, 8, 10, 12, 14, 16, 20, 24, 28, 32, 36, 40, 48, 56, 64,
-        96, 128, 256,
-      ];
-      const isCommon = common.indexOf(hwc) !== -1;
+      const plausible = hwc >= 2 && hwc <= 256;
       return {
-        passed: isCommon,
-        detail: isCommon
-          ? "hardwareConcurrency=" + hwc + " (common value)"
-          : "UNUSUAL hardwareConcurrency=" +
-            hwc +
-            " (not a typical core count)",
+        passed: plausible,
+        detail: plausible
+          ? "hardwareConcurrency=" + hwc + " (valid for Brave, farbles to 2+)"
+          : "hardwareConcurrency=" + hwc + " (outside expected range)",
       };
     })();
 
