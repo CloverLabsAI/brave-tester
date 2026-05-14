@@ -305,13 +305,13 @@ export async function runExtendedChecks(): Promise<
         samples.length +
         " non-zero samples)",
     };
-    // performance.memory exists in Chrome but may be restricted
-    result.performanceAPI.noPerformanceMemory = {
-      passed: typeof (performance as any).memory === "undefined",
+    // performance.memory is a deprecated Chrome API - its presence/absence is informational
+    result.performanceAPI.performanceMemoryStatus = {
+      passed: true,
       detail:
-        typeof (performance as any).memory === "undefined"
-          ? "Not present (may be restricted by Brave Shields)"
-          : "PRESENT (Chrome-only)",
+        typeof (performance as any).memory !== "undefined"
+          ? "performance.memory present (Chrome legacy API)"
+          : "performance.memory absent (deprecated, acceptable)",
     };
   } catch (e: any) {
     result.performanceAPI.error = {

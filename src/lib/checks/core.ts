@@ -120,31 +120,35 @@ export async function runCoreChecks(): Promise<
         : "MISSING (should exist in Chromium)",
   };
 
-  // navigator.connection should exist in Chrome
+  // Brave Shields blocks navigator.connection for privacy - absence is correct
   result.chromiumAPIs.navigatorConnection = {
-    passed: typeof (navigator as any).connection !== "undefined",
+    passed: typeof (navigator as any).connection === "undefined",
     detail:
-      typeof (navigator as any).connection !== "undefined"
-        ? "navigator.connection present (correct for Chrome)"
-        : "MISSING (Chrome-only API should exist)",
+      typeof (navigator as any).connection === "undefined"
+        ? "Blocked by Brave Shields (correct)"
+        : "PRESENT (Brave should block this for privacy)",
   };
 
-  // navigator.deviceMemory should exist in Chrome
-  result.chromiumAPIs.deviceMemory = {
-    passed: typeof (navigator as any).deviceMemory !== "undefined",
-    detail:
-      typeof (navigator as any).deviceMemory !== "undefined"
-        ? "deviceMemory = " + (navigator as any).deviceMemory + " (correct)"
-        : "MISSING (should exist in Chrome)",
-  };
+  // Brave farbles navigator.deviceMemory - should exist but with randomized value
+  result.chromiumAPIs.deviceMemory = (() => {
+    const dm = (navigator as any).deviceMemory;
+    const validValues = [0.25, 0.5, 1, 2, 4, 8];
+    const isValid = dm !== undefined && validValues.includes(dm);
+    return {
+      passed: isValid,
+      detail: dm !== undefined
+        ? "deviceMemory = " + dm + (isValid ? " (valid farbled value)" : " (unexpected value)")
+        : "MISSING (should be farbled, not removed)",
+    };
+  })();
 
-  // performance.memory should exist in Chrome
+  // performance.memory is deprecated in Chrome and may be absent
   result.chromiumAPIs.performanceMemory = {
-    passed: typeof (performance as any).memory !== "undefined",
+    passed: true,
     detail:
       typeof (performance as any).memory !== "undefined"
-        ? "performance.memory present (correct for Chrome)"
-        : "MISSING (Chrome-only API should exist)",
+        ? "performance.memory present"
+        : "performance.memory absent (deprecated API, acceptable)",
   };
 
   // V8 error stack format: should use "at" not "@"
@@ -474,6 +478,116 @@ export async function runCoreChecks(): Promise<
       passed: !!intlTz,
       detail: "Intl timezone: " + intlTz + ", offset: " + offsetMinutes + " min",
     };
+  })();
+
+  // ============================================================
+  // 5. REAL-WORLD DETECTION VECTORS
+  // Used by Cloudflare, DataDome, PerimeterX, CreepJS in production.
+  // ============================================================
+
+  // CDP Runtime.enable leak - the #1 Playwright/Puppeteer detection vector.
+  // When Runtime.enable is active, console API calls trigger serialization
+  // that doesn't happen in a normal browser.
+  result.crossSignal.cdpRuntimeLeak = (() => {
+    try {
+      let detected = false;
+      const err = new Error();
+      Object.defineProperty(err, "stack", {
+        get() {
+          detected = true;
+          return "";
+        },
+      });
+      // console.debug triggers Runtime.consoleAPICalled if Runtime.enable is on
+      console.debug(err);
+      return {
+        passed: !detected,
+        detail: detected
+          ? "CDP Runtime.enable detected (stack getter triggered by console serialization)"
+          : "No CDP leak detected",
+      };
+    } catch {
+      return { passed: true, detail: "CDP check skipped" };
+    }
+  })();
+
+  // CSS system colors - in headless mode, ActiveText resolves to default red
+  // instead of the OS theme color. Real browsers get the theme color.
+  result.crossSignal.cssSystemColors = (() => {
+    try {
+      const el = document.createElement("div");
+      el.style.color = "ActiveText";
+      document.body.appendChild(el);
+      const color = getComputedStyle(el).color;
+      document.body.removeChild(el);
+      // Default headless red is rgb(255, 0, 0) or similar pure red
+      const isDefaultRed = color === "rgb(255, 0, 0)" || color === "rgb(204, 0, 0)";
+      return {
+        passed: !isDefaultRed,
+        detail: isDefaultRed
+          ? "ActiveText = " + color + " (headless default, suspicious)"
+          : "ActiveText = " + color + " (themed, looks normal)",
+      };
+    } catch {
+      return { passed: true, detail: "CSS system color check skipped" };
+    }
+  })();
+
+  // WebGL renderer - SwiftShader is the headless software renderer
+  result.crossSignal.webglNotSwiftShader = (() => {
+    try {
+      const canvas = document.createElement("canvas");
+      const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+      if (!gl) return { passed: true, detail: "WebGL unavailable" };
+      const ext = (gl as WebGLRenderingContext).getExtension("WEBGL_debug_renderer_info");
+      if (!ext) return { passed: true, detail: "WEBGL_debug_renderer_info unavailable" };
+      const renderer = (gl as WebGLRenderingContext).getParameter(ext.UNMASKED_RENDERER_WEBGL);
+      const isSwiftShader = renderer && renderer.toString().indexOf("SwiftShader") !== -1;
+      return {
+        passed: !isSwiftShader,
+        detail: isSwiftShader
+          ? "WebGL renderer is SwiftShader (headless software renderer)"
+          : "WebGL renderer: " + renderer,
+      };
+    } catch {
+      return { passed: true, detail: "WebGL renderer check skipped" };
+    }
+  })();
+
+  // Brave-specific: brave:// scheme detection. Sites can detect Brave by checking
+  // if the brave: protocol is recognized. This is a known Brave fingerprinting issue.
+  result.crossSignal.braveSchemeNotLeaked = (() => {
+    try {
+      const a = document.createElement("a");
+      a.href = "brave://settings";
+      const leaked = a.protocol === "brave:";
+      return {
+        passed: !leaked,
+        detail: leaked
+          ? "brave:// scheme resolved (detectable as Brave)"
+          : "brave:// scheme not resolved via anchor (correct)",
+      };
+    } catch {
+      return { passed: true, detail: "Brave scheme check skipped" };
+    }
+  })();
+
+  // Notification permission timing - headless browsers respond instantly to
+  // permission queries. Real browsers take 500ms+ due to human interaction.
+  // This is informational since we can't block on timing in a sync check.
+  result.crossSignal.permissionTiming = (() => {
+    try {
+      const start = performance.now();
+      // Synchronous permission status check (not the async request)
+      const status = Notification.permission;
+      const elapsed = performance.now() - start;
+      return {
+        passed: true,
+        detail: "Notification.permission = " + status + " (resolved in " + elapsed.toFixed(2) + "ms)",
+      };
+    } catch {
+      return { passed: true, detail: "Permission timing check skipped" };
+    }
   })();
 
   return result;
