@@ -51,12 +51,17 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
   await ensureFonts();
 
   const { certificate, crossProfile } = opts;
-  const W = 960, H = 620;
+  // Use the container's actual width so the canvas fills it edge-to-edge.
+  // Height is derived from a fixed aspect ratio.
+  const containerW = canvas.parentElement?.clientWidth || 960;
+  const W = containerW;
+  const H = Math.round(W * 0.62);
   const dpr = 2;
   canvas.width = W * dpr;
   canvas.height = H * dpr;
-  canvas.style.width = `${W}px`;
-  canvas.style.height = `${H}px`;
+  // Remove any inline style so CSS w-full controls sizing
+  canvas.style.width = "";
+  canvas.style.height = "";
   const ctx = canvas.getContext("2d")!;
   ctx.scale(dpr, dpr);
 
@@ -104,47 +109,42 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
   const metaY = P + 60;
   const contentW = W - P * 2;
 
-  // ID + Build on row 1 (they need the most space)
-  ctx.fillStyle = "#666";
-  ctx.font = `400 10px ${SANS}`;
-  ctx.fillText("ID", P, metaY);
-  ctx.fillStyle = "#ccc";
-  ctx.font = `400 11px ${MONO}`;
-  ctx.fillText(certificate.id, P, metaY + 15);
-
-  ctx.fillStyle = "#666";
-  ctx.font = `400 10px ${SANS}`;
-  ctx.fillText("Build", P + contentW * 0.5, metaY);
-  ctx.fillStyle = "#ccc";
-  ctx.font = `400 11px ${MONO}`;
-  ctx.fillText(truncate(ctx, certificate.braveVersion, contentW * 0.48), P + contentW * 0.5, metaY + 15);
-
-  // Issued, Profiles, Tests on row 2
-  const meta2Y = metaY + 36;
-  const meta2Cols: [string, string][] = [
-    ["Issued", new Date(certificate.timestamp).toLocaleDateString()],
-    ["Profiles", String(certificate.profileCount)],
-    ["Tests", `${certificate.passCount}/${certificate.totalTests}`],
+  // Row 1: ID, Issued, Profiles, Tests
+  const row1Cols: [string, string, number][] = [
+    ["ID", certificate.id, 0.42],
+    ["Issued", new Date(certificate.timestamp).toLocaleDateString(), 0.22],
+    ["Profiles", String(certificate.profileCount), 0.14],
+    ["Tests", `${certificate.passCount}/${certificate.totalTests}`, 0.22],
   ];
-  const meta2ColW = contentW / 3;
-  for (let i = 0; i < meta2Cols.length; i++) {
-    const x = P + i * meta2ColW;
+  let rx = P;
+  for (const [label, value, pct] of row1Cols) {
+    const colW = contentW * pct;
     ctx.fillStyle = "#666";
     ctx.font = `400 10px ${SANS}`;
-    ctx.fillText(meta2Cols[i]![0]!, x, meta2Y);
+    ctx.fillText(label, rx, metaY);
     ctx.fillStyle = "#ccc";
     ctx.font = `400 11px ${MONO}`;
-    ctx.fillText(meta2Cols[i]![1]!, x, meta2Y + 15);
+    ctx.fillText(truncate(ctx, value, colW - 12), rx, metaY + 15);
+    rx += colW;
   }
+
+  // Row 2: Build (full width)
+  const buildY = metaY + 36;
+  ctx.fillStyle = "#666";
+  ctx.font = `400 10px ${SANS}`;
+  ctx.fillText("Build", P, buildY);
+  ctx.fillStyle = "#ccc";
+  ctx.font = `400 11px ${MONO}`;
+  ctx.fillText(truncate(ctx, certificate.braveVersion, contentW - 12), P, buildY + 15);
 
   ctx.strokeStyle = "#1e1e1e";
   ctx.beginPath();
-  ctx.moveTo(P, meta2Y + 28);
-  ctx.lineTo(W - P, meta2Y + 28);
+  ctx.moveTo(P, buildY + 28);
+  ctx.lineTo(W - P, buildY + 28);
   ctx.stroke();
 
   // ── Sections (3 cols) + Hash/Uniqueness ──
-  const secY = meta2Y + 44;
+  const secY = buildY + 44;
   const secArea = W - P * 2 - 180; // leave 180px for hash column
   const secColW = secArea / 3;
 
