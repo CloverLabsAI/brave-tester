@@ -51,7 +51,7 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
   await ensureFonts();
 
   const { certificate, crossProfile } = opts;
-  const W = 920, H = 580;
+  const W = 960, H = 620;
   const dpr = 2;
   canvas.width = W * dpr;
   canvas.height = H * dpr;
@@ -60,7 +60,7 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
   const ctx = canvas.getContext("2d")!;
   ctx.scale(dpr, dpr);
 
-  const P = 40; // padding
+  const P = 56; // padding
   const passed = certificate.overallPass;
 
   // BG
