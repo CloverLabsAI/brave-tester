@@ -87,9 +87,7 @@ export function Certificate({ results }: { results: FullTestResult }) {
 
       {certificate && (
         <div className="rounded-lg border border-border bg-card overflow-hidden">
-          <div className="bg-background">
-            <canvas ref={canvasRef} className="w-full block" />
-          </div>
+          <canvas ref={canvasRef} className="w-full block" />
 
           <div className="px-5 py-3 flex items-center justify-between border-t border-border">
             <div className="text-xs text-muted-foreground space-y-0.5">

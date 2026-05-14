@@ -51,9 +51,9 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
   await ensureFonts();
 
   const { certificate, crossProfile } = opts;
-  // Use the container's actual width so the canvas fills it edge-to-edge.
-  // Height is derived from a fixed aspect ratio.
-  const containerW = canvas.parentElement?.clientWidth || 960;
+  // Fill parent width. canvas.clientWidth gives us the CSS-rendered width
+  // after w-full is applied. Falls back to offsetWidth or parent measurement.
+  const containerW = canvas.clientWidth || canvas.offsetWidth || canvas.parentElement?.clientWidth || 960;
   const W = containerW;
   const H = Math.round(W * 0.62);
   const dpr = 2;
