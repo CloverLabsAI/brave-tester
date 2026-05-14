@@ -51,7 +51,7 @@ export function Certificate({ results }: { results: FullTestResult }) {
           resultsHash,
           payload: {
             timestamp: results.timestamp, platform: "Multi-OS",
-            braveVersion: ua.substring(0, 60),
+            braveVersion: ua,
             passCount: results.totalPassed, totalTests: results.totalChecks,
             overallPass: results.totalPassed === results.totalChecks,
             sectionResults: allSectionResults, failedTests: allFailedTests.slice(0, 20),
