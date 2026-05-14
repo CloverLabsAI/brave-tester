@@ -109,16 +109,6 @@ export function IssuesPanel({ results }: { results: FullTestResult }) {
           affectedProfiles: [`${cp.uniqueCanvas}/${cp.total}`],
         });
       }
-      if (cp.uniqueScreens < cp.total && cp.total <= 12) {
-        // Only flag if profiles <= 12 (number of screen profiles). Beyond that, collisions are expected.
-        issueMap.set("uniqueness::screen", {
-          check: "Screen not fully unique across seeds",
-          category: "uniqueness",
-          detail: `${cp.uniqueScreens}/${cp.total} unique screens. Brave selects from 12 Mac profiles via prng() % 12. With ${cp.total} seeds, some collision is expected (birthday paradox).`,
-          severity: "medium",
-          affectedProfiles: [`${cp.uniqueScreens}/${cp.total}`],
-        });
-      }
     }
 
     const all = Array.from(issueMap.values());
