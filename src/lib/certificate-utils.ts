@@ -102,22 +102,24 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
   // ── Row 2: Metadata grid (single row, 5 cols) ──
   ctx.textAlign = "left";
   const metaY = P + 64;
-  const metaCols = [
-    ["ID", certificate.id.substring(0, 18) + "..."],
-    ["Issued", new Date(certificate.timestamp).toLocaleDateString()],
-    ["Profiles", String(certificate.profileCount)],
-    ["Tests", `${certificate.passCount}/${certificate.totalTests}`],
-    ["Build", certificate.braveVersion.substring(0, 24)],
+  const contentW = W - P * 2;
+  const metaCols: [string, string, number][] = [
+    ["ID", certificate.id.substring(0, 24) + "...", 0.28],
+    ["Issued", new Date(certificate.timestamp).toLocaleDateString(), 0.16],
+    ["Profiles", String(certificate.profileCount), 0.10],
+    ["Tests", `${certificate.passCount}/${certificate.totalTests}`, 0.14],
+    ["Build", certificate.braveVersion.substring(0, 32), 0.32],
   ];
-  const metaColW = (W - P * 2) / metaCols.length;
-  for (let i = 0; i < metaCols.length; i++) {
-    const x = P + i * metaColW;
+  let metaX = P;
+  for (const [label, value, pct] of metaCols) {
+    const colW = contentW * pct;
     ctx.fillStyle = "#666";
     ctx.font = `400 10px ${SANS}`;
-    ctx.fillText(metaCols[i]![0]!, x, metaY);
+    ctx.fillText(label, metaX, metaY);
     ctx.fillStyle = "#ccc";
     ctx.font = `400 11px ${MONO}`;
-    ctx.fillText(metaCols[i]![1]!, x, metaY + 15);
+    ctx.fillText(truncate(ctx, value, colW - 8), metaX, metaY + 15);
+    metaX += colW;
   }
 
   // Thin line
