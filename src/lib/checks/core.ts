@@ -168,17 +168,36 @@ export async function runCoreChecks(): Promise<
     return { passed: false, detail: "Could not generate error" };
   })();
 
-  // navigator.userAgentData should exist (Client Hints API)
+  // navigator.userAgentData should exist and report Brave in brands.
+  // Bot detectors check for both HeadlessChrome (headless leak) and
+  // the absence of "Brave" (someone pretending to be Brave but isn't).
   result.chromiumAPIs.userAgentData = (() => {
     const uad = (navigator as any).userAgentData;
-    if (!uad) return { passed: false, detail: "MISSING (should exist in Chrome)" };
-    const brands = uad.brands?.map((b: any) => b.brand).join(", ") || "none";
-    const hasHeadless = brands.toLowerCase().indexOf("headless") !== -1;
+    if (!uad) return { passed: false, detail: "MISSING (should exist in Chromium)" };
+    const brands = uad.brands?.map((b: any) => b.brand) || [];
+    const brandStr = brands.join(", ") || "none";
+    const hasHeadless = brandStr.toLowerCase().indexOf("headless") !== -1;
+    const hasBrave = brands.includes("Brave");
+    const passed = !hasHeadless && hasBrave;
     return {
-      passed: !hasHeadless,
+      passed,
       detail: hasHeadless
-        ? "HeadlessChrome detected in brands: " + brands
-        : "Brands: " + brands + " (no headless leak)",
+        ? "HeadlessChrome detected in brands: " + brandStr
+        : !hasBrave
+          ? "Brave missing from brands: " + brandStr + " (detectable as non-Brave)"
+          : "Brands: " + brandStr,
+    };
+  })();
+
+  // navigator.brave should exist — Brave exposes this object.
+  // Bot detectors use its presence to confirm real Brave vs Chrome pretending to be Brave.
+  result.chromiumAPIs.navigatorBrave = (() => {
+    const brave = (navigator as any).brave;
+    return {
+      passed: brave !== undefined,
+      detail: brave !== undefined
+        ? "navigator.brave present (correct for Brave)"
+        : "MISSING (real Brave exposes navigator.brave)",
     };
   })();
 
