@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     const id = crypto.randomUUID();
 
     // Sign with HMAC-SHA256
-    const secret = process.env.CERT_SECRET || "camoufox-tester-dev-secret";
+    const secret = process.env.CERT_SECRET || "brave-tester-dev-secret";
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey(
       "raw",

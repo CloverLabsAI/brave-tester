@@ -101,7 +101,7 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
 
   // Logo
   try {
-    const logo = await loadImage("/camoufox-logo.svg");
+    const logo = await loadImage("/brave-logo.svg");
     const logoSize = 48;
     ctx.drawImage(logo, W / 2 - logoSize / 2, 15, logoSize, logoSize);
   } catch {
@@ -109,14 +109,14 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
     ctx.fillStyle = "#22d3ee";
     ctx.font = "bold 36px monospace";
     ctx.textAlign = "center";
-    ctx.fillText("C", W / 2, 55);
+    ctx.fillText("B", W / 2, 55);
   }
 
   // Title
   ctx.font = "bold 28px monospace";
   ctx.fillStyle = "#e0daf0";
   ctx.textAlign = "center";
-  ctx.fillText("CAMOUFOX BUILD CERTIFICATE", W / 2, 95);
+  ctx.fillText("BRAVE BUILD CERTIFICATE", W / 2, 95);
 
   // Decorative line
   const lineGrad = ctx.createLinearGradient(W / 2 - 200, 0, W / 2 + 200, 0);
@@ -162,7 +162,7 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
   drawLabel("ISSUED", new Date(certificate.timestamp).toLocaleString(), y + 42);
   drawLabel("PROFILES TESTED", String(certificate.profileCount), y + 84);
   drawLabel("TESTS PASSED", `${certificate.passCount} / ${certificate.totalTests}`, y + 126);
-  drawLabel("USER AGENT", certificate.camoufoxVersion, y + 168);
+  drawLabel("USER AGENT", certificate.braveVersion, y + 168);
 
   // Center column: section results
   const sectionX = 440;
@@ -319,7 +319,7 @@ export async function drawCertificate(canvas: HTMLCanvasElement, opts: DrawCerti
   ctx.textAlign = "center";
   ctx.fillStyle = "#8b7fa6";
   ctx.font = "10px monospace";
-  ctx.fillText("Camoufox Tester", W / 2, H - 15);
+  ctx.fillText("Brave Tester", W / 2, H - 15);
   ctx.textAlign = "left";
 }
 

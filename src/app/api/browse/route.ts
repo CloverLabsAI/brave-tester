@@ -31,17 +31,17 @@ export async function POST(request: Request) {
   let command: string;
   if (platform === "darwin") {
     // Allow selecting .app bundles or raw executables
-    command = `osascript -e 'set f to POSIX path of (choose file with prompt "Select Camoufox.app or binary" of type {"com.apple.application-bundle", "public.unix-executable", "public.data"})' -e 'return f'`;
+    command = `osascript -e 'set f to POSIX path of (choose file with prompt "Select Brave.app or binary" of type {"com.apple.application-bundle", "public.unix-executable", "public.data"})' -e 'return f'`;
   } else if (platform === "win32") {
     let initialDir = "";
     if (isLinuxOnWindows) {
       const distro = await getWslDistro();
       initialDir = `$f.InitialDirectory = '\\\\wsl$\\${distro}\\home'; `;
     }
-    command = `powershell -NoProfile -Command "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class DPI { [DllImport(\\\"user32.dll\\\")] public static extern bool SetProcessDPIAware(); }'; [void][DPI]::SetProcessDPIAware(); Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.OpenFileDialog; $f.Title = 'Select Camoufox binary'; $f.Filter = 'All files (*.*)|*.*|Executable files (*.exe)|*.exe'; ${initialDir}if ($f.ShowDialog() -eq 'OK') { $f.FileName } else { '' }"`;
+    command = `powershell -NoProfile -Command "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class DPI { [DllImport(\\\"user32.dll\\\")] public static extern bool SetProcessDPIAware(); }'; [void][DPI]::SetProcessDPIAware(); Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.OpenFileDialog; $f.Title = 'Select Brave binary'; $f.Filter = 'All files (*.*)|*.*|Executable files (*.exe)|*.exe'; ${initialDir}if ($f.ShowDialog() -eq 'OK') { $f.FileName } else { '' }"`;
   } else {
     // Linux - try zenity, kdialog, or return error
-    command = `zenity --file-selection --title="Select Camoufox binary" 2>/dev/null || kdialog --getopenfilename ~ "All files (*)" 2>/dev/null`;
+    command = `zenity --file-selection --title="Select Brave binary" 2>/dev/null || kdialog --getopenfilename ~ "All files (*)" 2>/dev/null`;
   }
 
   try {
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
     // On macOS, auto-resolve .app bundle to the binary inside
     let resolvedPath = path;
     if (resolvedPath.endsWith(".app") || resolvedPath.endsWith(".app/")) {
-      resolvedPath = resolvedPath.replace(/\/$/, "") + "/Contents/MacOS/camoufox";
+      resolvedPath = resolvedPath.replace(/\/$/, "") + "/Contents/MacOS/Brave Browser Development";
     }
 
     return NextResponse.json({ path: resolvedPath, cancelled: false });

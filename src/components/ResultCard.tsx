@@ -153,8 +153,8 @@ export function ResultCard({ profileResult }: ResultCardProps) {
             <p className="text-[#e0daf0] font-mono">{fp.speechVoices?.count ?? 0} voices</p>
           </div>
           <div>
-            <span className="text-[#8b7fa6]">Oscpu</span>
-            <p className="text-[#e0daf0] font-mono truncate">{fp.navigator.oscpu || "N/A"}</p>
+            <span className="text-[#8b7fa6]">Device Memory</span>
+            <p className="text-[#e0daf0] font-mono truncate">{fp.navigator.deviceMemory ?? "N/A"} GB</p>
           </div>
         </div>
       </div>

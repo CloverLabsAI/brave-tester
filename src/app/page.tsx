@@ -60,12 +60,12 @@ export default function Home() {
       {/* Hero */}
       <div className="text-center space-y-3">
         <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-teal-400">
-          Camoufox Build Tester
+          Brave Build Tester
         </h1>
         <p className="text-[#8b7fa6] max-w-2xl mx-auto text-sm">
-          Verify your Camoufox build passes all stealth integrity checks across
-          multiple profiles and configurations. Tests per-context fingerprint
-          isolation, global config, and cross-profile uniqueness.
+          Verify your Brave stealth build passes all anti-detection checks across
+          multiple seed-based profiles. Tests per-context fingerprint isolation,
+          self-destruct, and cross-profile uniqueness.
         </p>
       </div>
 
@@ -78,7 +78,7 @@ export default function Home() {
               Build Platform
             </label>
             <p className="text-xs text-[#8b7fa6]">
-              Which platform was this Camoufox binary built for?
+              Which platform was this Brave binary built for?
             </p>
             <div className="flex gap-2">
               {([
@@ -104,12 +104,12 @@ export default function Home() {
           {/* Binary Path */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-[#e0daf0]">
-              Camoufox Binary Path
+              Brave Binary Path
             </label>
             <p className="text-xs text-[#8b7fa6]">
               {buildPlatform === "macos"
-                ? "Select the Camoufox.app bundle or the binary inside it"
-                : "Select your built Camoufox browser executable"}
+                ? "Select the Brave.app bundle or the binary inside it"
+                : "Select your built Brave browser executable"}
             </p>
             <div className="flex gap-2">
               <input
@@ -118,10 +118,10 @@ export default function Home() {
                 onChange={(e) => setBinaryPath(e.target.value)}
                 placeholder={
                   buildPlatform === "macos"
-                    ? "~/Downloads/Camoufox.app"
+                    ? "~/Downloads/Brave.app"
                     : buildPlatform === "linux"
-                      ? "/home/user/camoufox/camoufox"
-                      : "C:\\path\\to\\camoufox.exe"
+                      ? "/home/user/brave/brave"
+                      : "C:\\path\\to\\brave.exe"
                 }
                 className="flex-1 bg-[#0d0919] border border-[rgba(139,127,166,0.2)] rounded-lg px-4 py-2.5 text-sm text-[#e0daf0] placeholder:text-[#8b7fa6]/50 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 font-mono"
               />
@@ -138,27 +138,20 @@ export default function Home() {
           {/* Test Plan */}
           <div className="bg-[#0d0919]/50 rounded-lg p-4 space-y-3">
             <h3 className="text-xs font-bold text-[#8b7fa6] uppercase tracking-wider">Test Plan</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
               <div className="bg-[#241b3d]/50 rounded-lg p-3 space-y-1.5">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-cyan-400" />
-                  <span className="font-medium text-[#e0daf0]">macOS Per-Context</span>
+                  <span className="font-medium text-[#e0daf0]">4 Seed-Based Profiles</span>
                 </div>
-                <p className="text-[#8b7fa6]">3 profiles with unique fingerprints via window.setXxx() APIs</p>
+                <p className="text-[#8b7fa6]">Each profile gets a unique seed. The browser derives all fingerprint surfaces (canvas, audio, WebGL, screen) from that seed internally.</p>
               </div>
               <div className="bg-[#241b3d]/50 rounded-lg p-3 space-y-1.5">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-teal-400" />
-                  <span className="font-medium text-[#e0daf0]">Linux Per-Context</span>
+                  <span className="font-medium text-[#e0daf0]">Cross-Profile Verification</span>
                 </div>
-                <p className="text-[#8b7fa6]">3 profiles with unique Linux fingerprints via APIs</p>
-              </div>
-              <div className="bg-[#241b3d]/50 rounded-lg p-3 space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-purple-400" />
-                  <span className="font-medium text-[#e0daf0]">Global Config</span>
-                </div>
-                <p className="text-[#8b7fa6]">1 macOS + 1 Linux via CAMOU_CONFIG env var</p>
+                <p className="text-[#8b7fa6]">Profiles run simultaneously to detect cross-context contamination. Different seeds should produce different fingerprints.</p>
               </div>
             </div>
           </div>
@@ -169,7 +162,7 @@ export default function Home() {
               disabled={!binaryPath.trim()}
               className="px-8 py-3 bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-[#0d0919] font-bold rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed text-sm"
             >
-              Run All Tests (8 Profiles)
+              Run All Tests (4 Profiles)
             </button>
           </div>
         </div>
@@ -191,9 +184,9 @@ export default function Home() {
         <div className="text-center space-y-2 pt-8 border-t border-[rgba(139,127,166,0.1)]">
           <h2 className="text-sm font-bold text-[#8b7fa6]">How to use</h2>
           <ol className="text-xs text-[#8b7fa6]/80 space-y-1 max-w-lg mx-auto text-left list-decimal list-inside">
-            <li>Build Camoufox from source with your patches applied</li>
-            <li>Enter or browse to your Camoufox binary path above</li>
-            <li>Click &quot;Run All Tests&quot; to test 8 profiles across Mac &amp; Linux configs</li>
+            <li>Build the Brave stealth fork from source</li>
+            <li>Enter or browse to your Brave binary path above</li>
+            <li>Click &quot;Run All Tests&quot; to test 4 profiles with unique seeds</li>
             <li>Review results - all profiles should pass for a clean build</li>
             <li>Download the certificate to attach to your PR</li>
           </ol>

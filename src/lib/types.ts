@@ -7,12 +7,13 @@ export interface FingerprintData {
   navigator: {
     userAgent: string;
     platform: string;
-    oscpu: string;
     hardwareConcurrency: number;
     maxTouchPoints: number;
     vendor: string;
-    buildID: string;
     doNotTrack: string;
+    // Chromium-specific
+    deviceMemory?: number;
+    connection?: string;
   };
   screen: {
     width: number;
@@ -57,6 +58,12 @@ export interface FingerprintData {
   emojiCanvas: { hash: string };
   fontAvailability: { detected: string[]; count: number; hash: string };
   speechVoices: { names: string[]; count: number; hash: string };
+  // Self-destruct verification: these should be undefined after first call
+  selfDestruct?: {
+    setFingerprintingSeed: boolean;
+    setWebRTCIPv4: boolean;
+    setTimezone: boolean;
+  };
 }
 
 export interface WebRTCResult {
@@ -77,27 +84,14 @@ export interface TestResults {
   stability: { fingerprints2: FingerprintData; stable: boolean; detail: string };
 }
 
-// Multi-profile types
-
+// Brave profile config - much simpler than Camoufox since one seed controls everything
 export interface ProfileConfig {
   name: string;
   os: "macos" | "linux";
-  mode: "per-context" | "global";
-  platform: string;
-  oscpu: string;
-  userAgent: string;
-  hardwareConcurrency: number;
-  screenWidth: number;
-  screenHeight: number;
-  colorDepth: number;
+  mode: "per-context";
+  fingerprintingSeed: number;
   timezone: string;
-  webglVendor: string;
-  webglRenderer: string;
-  audioSeed: number;
-  canvasSeed: number;
-  fontSpacingSeed: number;
-  fontList: string[];
-  speechVoices?: string[];
+  webrtcIP: string;
 }
 
 export interface ProfileResult {
@@ -156,7 +150,7 @@ export interface CertificateData {
   id: string;
   timestamp: string;
   platform: string;
-  camoufoxVersion: string;
+  braveVersion: string;
   passCount: number;
   totalTests: number;
   overallPass: boolean;

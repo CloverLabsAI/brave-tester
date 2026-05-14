@@ -34,7 +34,7 @@ export default function TestPage() {
 
   return (
     <div style={{ padding: 20, fontFamily: "monospace", color: "#22d3ee", background: "#0d0919", minHeight: "100vh" }}>
-      <p>Camoufox Test Runner</p>
+      <p>Brave Test Runner</p>
       <p>Status: {status}</p>
     </div>
   );

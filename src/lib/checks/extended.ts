@@ -63,7 +63,7 @@ export async function runExtendedChecks(): Promise<
       passed: true,
       detail:
         "-webkit-appearance: " +
-        (webkitAppearance ? "supported (Firefox compat mode)" : "not supported"),
+        (webkitAppearance ? "supported" : "not supported"),
     };
 
     // CSS System Font Detection -- checks what getComputedStyle returns for system fonts
@@ -159,7 +159,7 @@ export async function runExtendedChecks(): Promise<
         if (d > 0) deltas.push(d);
       }
       const minDelta = deltas.length > 0 ? Math.min(...deltas) : 0;
-      // Firefox with privacy.reduceTimerPrecision typically rounds to 1ms or 20us
+      // Brave with fingerprinting protection may round timer precision
       // Extremely high precision (< 0.01ms) suggests no timer rounding
       const suspicious = minDelta > 0 && minDelta < 0.005;
       return {
@@ -192,7 +192,7 @@ export async function runExtendedChecks(): Promise<
       passed: true,
       detail: "Math.sinh(1) = " + sinhVal,
     };
-    // SpiderMonkey-specific: Math.asinh(1) string representation
+    // V8 Math.asinh(1) string representation
     const asinhVal = Math.asinh(1);
     result.mathEngine.asinhPrecision = {
       passed: true,
@@ -295,7 +295,7 @@ export async function runExtendedChecks(): Promise<
       if (t2 > t1) samples.push(t2 - t1);
     }
     const minDelta = samples.length > 0 ? Math.min(...samples) : 0;
-    // Firefox with privacy.reduceTimerPrecision rounds to 1ms or 100us
+    // Brave with fingerprinting protection may round timer precision
     result.performanceAPI.timerResolution = {
       passed: true,
       detail:
@@ -305,12 +305,12 @@ export async function runExtendedChecks(): Promise<
         samples.length +
         " non-zero samples)",
     };
-    // performance.memory should NOT exist in Firefox
+    // performance.memory exists in Chrome but may be restricted
     result.performanceAPI.noPerformanceMemory = {
       passed: typeof (performance as any).memory === "undefined",
       detail:
         typeof (performance as any).memory === "undefined"
-          ? "Not present (correct for Firefox)"
+          ? "Not present (may be restricted by Brave Shields)"
           : "PRESENT (Chrome-only)",
     };
   } catch (e: any) {
@@ -628,7 +628,7 @@ export async function runExtendedChecks(): Promise<
         suspicious = true;
         reason = "Direct3D renderer on Mac platform";
       }
-      // Check for "or similar" suffix from Camoufox global config (expected behavior)
+      // Check for "or similar" suffix in WebGL renderer (expected in some configs)
       const hasSimilarSuffix = rendererLower.indexOf(", or similar") !== -1;
       return {
         passed: !suspicious,
@@ -637,7 +637,7 @@ export async function runExtendedChecks(): Promise<
             renderer +
             '" plausible for ' +
             plat +
-            (hasSimilarSuffix ? " (Camoufox global)" : "")
+            (hasSimilarSuffix ? " (expected)" : "")
           : "MISMATCH: " + reason,
       };
     } catch (e: any) {
@@ -681,7 +681,7 @@ export async function runExtendedChecks(): Promise<
   }
 
   // Audio noise trap -- write known values to a buffer, read back, check if modified
-  // Note: Camoufox applies per-profile audio transformations via getChannelData() hook,
+  // Note: Brave applies per-context audio transformations via seed-derived farbling,
   // so user-written data IS modified. This is expected -- report as informational, not failure.
   try {
     const trapCtx = new AudioContext();
@@ -708,7 +708,7 @@ export async function runExtendedChecks(): Promise<
       detail: trapModified
         ? "Audio buffer modified on read-back (max delta: " +
           maxDiff.toExponential(2) +
-          ") - Camoufox audio transform active"
+          ") - Brave audio farbling active"
         : "Audio buffer unchanged after write-back (no audio transform applied)",
     };
   } catch (e: any) {
@@ -881,10 +881,10 @@ export async function runExtendedChecks(): Promise<
   // ============================================================
   try {
     // Permission bug: Notification.permission vs permissions.query() mismatch
-    // NOTE: Firefox normally shows this mismatch (denied vs prompt) because
+    // NOTE: Brave in headless mode returns DENIED for permissions because
     // Notification.permission reads enforcement state while permissions.query
     // reads the stored user-decision state. This is NOT a headless indicator
-    // in Firefox -- it's expected behavior. Marked informational (always pass).
+    // stealth patches add human-like delays. Marked informational (always pass).
     result.headlessDetection.permissionConsistency = await (async () => {
       try {
         if (
@@ -914,7 +914,7 @@ export async function runExtendedChecks(): Promise<
               notifPerm +
               ", query=" +
               queryResult.state +
-              " (normal Firefox mismatch)",
+              " (expected Brave behavior)",
         };
       } catch (e: any) {
         return {
@@ -929,7 +929,7 @@ export async function runExtendedChecks(): Promise<
       const wDiff = screen.width - screen.availWidth;
       const hDiff = screen.height - screen.availHeight;
       // Both being 0 is suspicious (no taskbar/dock) but not definitive
-      // Camoufox screen spoofing may set avail === screen
+      // Brave screen farbling may set avail === screen
       const noTaskbar = wDiff === 0 && hDiff === 0;
       return {
         passed: true,
@@ -1026,7 +1026,7 @@ export async function runExtendedChecks(): Promise<
       const ua = navigator.userAgent.toLowerCase();
       const hasHeadless =
         ua.indexOf("headlesschrome") !== -1 ||
-        ua.indexOf("headlessfirefox") !== -1 ||
+        ua.indexOf("HeadlessChrome") !== -1 ||
         ua.indexOf("phantomjs") !== -1;
       return {
         passed: !hasHeadless,
@@ -1083,7 +1083,7 @@ export async function runExtendedChecks(): Promise<
         ? Math.round((headlessIndicators / headlessTotal) * 100)
         : 0;
     // Threshold: up to 15% is acceptable (1 flag out of 9 checks = 11%, which is
-    // common for Firefox due to light-theme prefersColorScheme and similar benign signals)
+    // common for Chromium due to light-theme prefersColorScheme and similar benign signals)
     result.headlessDetection.headlessScore = {
       passed: headlessPercent <= 15,
       detail:
@@ -1418,7 +1418,7 @@ export async function runExtendedChecks(): Promise<
           highestVersion = ver;
         }
       }
-      // Threshold of 3: Camoufox bundles a subset of macOS fonts, not a full install.
+      // Threshold of 3: Brave with farbling may report a subset of macOS fonts.
       // Real macOS machines also vary -- not all have every version font.
       result.fontEnvironment.macOSVersionDepth = {
         passed: versionFound >= 3,

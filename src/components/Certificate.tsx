@@ -93,7 +93,7 @@ export function Certificate({ results }: CertificateProps) {
           payload: {
             timestamp: results.timestamp,
             platform: "Multi-OS",
-            camoufoxVersion: ua.substring(0, 60),
+            braveVersion: ua.substring(0, 60),
             passCount: results.totalPassed,
             totalTests: results.totalChecks,
             overallPass: results.totalPassed === results.totalChecks,
@@ -130,7 +130,7 @@ export function Certificate({ results }: CertificateProps) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `camoufox-certificate-${certificate?.id?.slice(0, 8) || "test"}.png`;
+      a.download = `brave-certificate-${certificate?.id?.slice(0, 8) || "test"}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

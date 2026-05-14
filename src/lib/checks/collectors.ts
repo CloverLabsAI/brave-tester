@@ -181,9 +181,9 @@ export async function collectFingerprints(): Promise<FingerprintData> {
   // Font metrics — use "Arial" (concrete font name) instead of "monospace" (generic family).
   // The fontPlatformConsistency check in extended.ts calls isFontAvailable() 11 times with
   // different font families + monospace fallback, which pollutes fontconfig's generic family
-  // resolution cache. On macOS Global (CAMOU_CONFIG), this causes "monospace" to resolve to
-  // a different actual font between the two collectFingerprints() calls (42.6px delta observed).
-  // Arial is a concrete font always available in all Camoufox font lists, immune to this.
+  // resolution cache. This can cause "monospace" to resolve to a different actual font
+  // between the two collectFingerprints() calls.
+  // Arial is a concrete font always available, immune to this.
   await document.fonts.ready;
   const fontData = (() => {
     try {
@@ -288,6 +288,13 @@ export async function collectFingerprints(): Promise<FingerprintData> {
     }
   })();
 
+  // Check that Brave's setter functions self-destructed after first call
+  const selfDestruct = {
+    setFingerprintingSeed: typeof (window as any).setFingerprintingSeed === "function",
+    setWebRTCIPv4: typeof (window as any).setWebRTCIPv4 === "function",
+    setTimezone: typeof (window as any).setTimezone === "function",
+  };
+
   return {
     navigator: nav,
     screen: scr,
@@ -300,6 +307,7 @@ export async function collectFingerprints(): Promise<FingerprintData> {
     emojiCanvas: emojiData,
     fontAvailability: fontAvailData,
     speechVoices: speechVoicesData,
+    selfDestruct,
   };
 }
 

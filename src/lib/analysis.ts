@@ -2,9 +2,8 @@ import type { TestResults, CheckResult, CertificateData } from "./types";
 
 const CATEGORY_LABELS: Record<string, string> = {
   automation: "Automation Detection",
-  jsEngine: "JS Engine",
+  chromiumAPIs: "Chromium APIs",
   lieDetection: "Lie Detection",
-  firefoxAPIs: "Firefox APIs",
   crossSignal: "Cross-Signal",
   cssFingerprint: "CSS Fingerprint",
   mathEngine: "Math Engine",
@@ -48,11 +47,9 @@ export function computeStats(results: TestResults) {
   let totalPassed = core.passed + extended.passed + workers.passed;
   let totalChecks = core.total + extended.total + workers.total;
 
-  // WebRTC
   totalChecks++;
   if (results.webrtc.passed) totalPassed++;
 
-  // Stability
   totalChecks++;
   if (results.stability.stable) totalPassed++;
 
@@ -81,7 +78,6 @@ export function computeSectionResults(
     }
   }
 
-  // Add WebRTC and Stability
   sections.push({ name: "WebRTC", passed: results.webrtc.passed ? 1 : 0, total: 1 });
   sections.push({ name: "Stability", passed: results.stability.stable ? 1 : 0, total: 1 });
 
@@ -130,7 +126,7 @@ export function buildCertificatePayload(
   return {
     timestamp: new Date().toISOString(),
     platform: results.fingerprints?.navigator?.platform || "unknown",
-    camoufoxVersion: extractCamoufoxVersion(results.fingerprints?.navigator?.userAgent || ""),
+    braveVersion: extractBraveVersion(results.fingerprints?.navigator?.userAgent || ""),
     passCount: totalPassed,
     totalTests: totalChecks,
     overallPass: totalPassed === totalChecks,
@@ -141,7 +137,7 @@ export function buildCertificatePayload(
   };
 }
 
-function extractCamoufoxVersion(ua: string): string {
-  const match = ua.match(/Firefox\/(\d+\.\d+)/);
-  return match ? `Firefox ${match[1]}` : ua.substring(0, 60);
+function extractBraveVersion(ua: string): string {
+  const match = ua.match(/Chrome\/(\d+\.\d+\.\d+\.\d+)/);
+  return match ? `Chrome ${match[1]}` : ua.substring(0, 60);
 }
